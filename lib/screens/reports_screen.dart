@@ -32,7 +32,8 @@ class ReportsScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Total Cost: ৳${p.totalCost.toStringAsFixed(0)}'),
-                  Text('Total Paid: ৳${p.members.fold<double>(0, (s, m) => s + m.paidAmount).toStringAsFixed(0)}'),
+                  Text(
+                      'Total Paid: ৳${p.members.fold<double>(0, (s, m) => s + m.paidAmount).toStringAsFixed(0)}'),
                   Text('Total Members: ${p.members.length}'),
                 ],
               ),

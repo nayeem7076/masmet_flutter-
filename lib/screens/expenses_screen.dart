@@ -7,6 +7,27 @@ import '../providers/app_provider.dart';
 class ExpensesScreen extends ConsumerWidget {
   const ExpensesScreen({super.key});
 
+  Future<bool> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Expense'),
+        content: const Text('Are you sure you want to delete this expense?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
+  }
+
   void openForm(BuildContext context, WidgetRef ref, [Expense? e]) {
     final p = ref.read(appProviderProvider);
     final title = TextEditingController(text: e?.title ?? 'Bazar');
@@ -85,24 +106,35 @@ class ExpensesScreen extends ConsumerWidget {
                     .map((x) => x.trim())
                     .where((x) => x.isNotEmpty)
                     .toList();
-                if (e == null) {
-                  await p.addExpense(
-                    title.text,
-                    double.tryParse(amount.text) ?? 0,
-                    paidBy,
-                    cat,
-                    list,
-                  );
-                } else {
-                  await p.updateExpense(
-                    e,
-                    title.text,
-                    double.tryParse(amount.text) ?? 0,
-                    cat,
-                    list,
+                try {
+                  if (e == null) {
+                    await p.addExpense(
+                      title.text,
+                      double.tryParse(amount.text) ?? 0,
+                      paidBy,
+                      cat,
+                      list,
+                    );
+                  } else {
+                    await p.updateExpense(
+                      e,
+                      title.text,
+                      double.tryParse(amount.text) ?? 0,
+                      cat,
+                      list,
+                    );
+                  }
+                  if (context.mounted) Navigator.pop(context);
+                } catch (err) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        err.toString().replaceFirst('Exception: ', ''),
+                      ),
+                    ),
                   );
                 }
-                Navigator.pop(context);
               },
               child: const Text('Save'),
             ),
@@ -147,9 +179,14 @@ class ExpensesScreen extends ConsumerWidget {
                         PopupMenuItem(value: 'edit', child: Text('Edit')),
                         PopupMenuItem(value: 'delete', child: Text('Delete')),
                       ],
-                      onSelected: (v) {
+                      onSelected: (v) async {
                         if (v == 'edit') openForm(context, ref, e);
-                        if (v == 'delete') p.deleteExpense(e.id);
+                        if (v == 'delete') {
+                          final ok = await _confirmDelete(context);
+                          if (ok) {
+                            await p.deleteExpense(e.id);
+                          }
+                        }
                       },
                     )
                   : null,

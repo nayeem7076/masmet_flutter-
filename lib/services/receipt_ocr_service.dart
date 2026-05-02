@@ -1,1 +1,3 @@
-class ReceiptOcrService { double mockExtractAmount(String imagePath) => 500; }
+class ReceiptOcrService {
+  double mockExtractAmount(String imagePath) => 500;
+}

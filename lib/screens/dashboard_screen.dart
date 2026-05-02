@@ -106,7 +106,8 @@ class DashboardScreen extends ConsumerWidget {
                 ),
                 AppCard(
                   title: 'Total Paid',
-                  value: '৳${provider.members.fold<double>(0, (s, m) => s + m.paidAmount).toStringAsFixed(0)}',
+                  value:
+                      '৳${provider.members.fold<double>(0, (s, m) => s + m.paidAmount).toStringAsFixed(0)}',
                   icon: Icons.account_balance_wallet,
                 ),
                 AppCard(

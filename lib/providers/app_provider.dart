@@ -8,6 +8,8 @@ import '../models/expense.dart';
 import '../models/meal.dart';
 import '../models/member.dart';
 import '../models/notice.dart';
+import '../services/auth_service.dart';
+import '../services/auth_token_service.dart';
 import '../services/email_notice_service.dart';
 
 final appProviderProvider = ChangeNotifierProvider<AppProvider>((ref) {
@@ -65,66 +67,15 @@ class AppProvider extends ChangeNotifier {
     currentPhone = sp.getString('currentPhone');
     currentRole = sp.getString('currentRole') ?? 'manager';
 
-    members = (jsonDecode(sp.getString('members') ?? '[]') as List)
-        .map((item) => Member.fromJson(item))
-        .toList();
-    expenses = (jsonDecode(sp.getString('expenses') ?? '[]') as List)
-        .map((item) => Expense.fromJson(item))
-        .toList();
-    meals = (jsonDecode(sp.getString('meals') ?? '[]') as List)
-        .map((item) => MealEntry.fromJson(item))
-        .toList();
-    notices = (jsonDecode(sp.getString('notices') ?? '[]') as List)
-        .map((item) => NoticeItem.fromJson(item))
-        .toList();
+    members = _decodeList(sp.getString('members'), Member.fromJson);
+    expenses = _decodeList(sp.getString('expenses'), Expense.fromJson);
+    meals = _decodeList(sp.getString('meals'), MealEntry.fromJson);
+    notices = _decodeList(sp.getString('notices'), NoticeItem.fromJson);
 
-    if (members.isEmpty) {
-      members.add(
-        Member(
-          id: 'm1',
-          name: 'Manager',
-          phone: 'lms.razinsoft@gmail.com',
-          paidAmount: 5000,
-        ),
-      );
-      members.add(
-        Member(
-          id: 'm2',
-          name: 'Demo Member',
-          phone: 'member@example.com',
-          paidAmount: 1000,
-        ),
-      );
-      expenses.add(
-        Expense(
-          id: 'e1',
-          title: 'Rice, Oil, Egg',
-          amount: 1800,
-          paidByMemberId: 'm1',
-          date: DateTime.now(),
-          items: ['Rice', 'Oil', 'Egg'],
-        ),
-      );
-      meals.add(
-        MealEntry(
-          id: 'me1',
-          memberId: 'm1',
-          date: DateTime.now(),
-          breakfast: 1,
-          lunch: 1,
-          dinner: 1,
-        ),
-      );
-      notices.add(
-        NoticeItem(
-          id: 'n1',
-          title: 'Welcome to MessMate',
-          text: 'Manager can now send notice and email notification.',
-          date: DateTime.now(),
-          sendToAll: true,
-        ),
-      );
-      await save();
+    final accessToken = await AuthTokenService.getAccessToken();
+    if ((accessToken == null || accessToken.isEmpty) && currentPhone != null) {
+      // Keep local state consistent with auth state.
+      currentPhone = null;
     }
   }
 
@@ -150,17 +101,54 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> login(String phone, String role) async {
-    currentPhone = phone;
-    currentRole = role;
+    final contact = phone.trim();
+    if (contact.isEmpty) {
+      throw Exception('Phone or email is required.');
+    }
+    final result = await AuthService.login(identifier: contact, role: role);
+    await AuthTokenService.saveTokens(
+      accessToken: result.tokens.accessToken,
+      refreshToken: result.tokens.refreshToken,
+    );
+
+    currentPhone = result.identifier;
+    currentRole = result.role;
     await save();
     notifyListeners();
   }
 
   Future<void> register(String name, String phone, String role) async {
-    if (role == 'member' && members.every((member) => member.phone != phone)) {
-      members.add(Member(id: _id(), name: name, phone: phone));
+    final cleanedName = name.trim();
+    final cleanedPhone = phone.trim();
+    if (cleanedName.isEmpty || cleanedPhone.isEmpty) {
+      throw Exception('Name and phone/email are required.');
     }
-    await login(phone, role);
+    final result = await AuthService.register(
+      name: cleanedName,
+      identifier: cleanedPhone,
+      role: role,
+    );
+    await AuthTokenService.saveTokens(
+      accessToken: result.tokens.accessToken,
+      refreshToken: result.tokens.refreshToken,
+    );
+
+    // Keep local member list synced for UI summary.
+    if (role == 'member' &&
+        members.every((member) => member.phone != cleanedPhone)) {
+      members.add(
+        Member(
+          id: _id(),
+          name: cleanedName,
+          email: cleanedPhone.contains('@') ? cleanedPhone : '',
+          phone: cleanedPhone,
+        ),
+      );
+    }
+    currentPhone = cleanedPhone;
+    currentRole = role;
+    await save();
+    notifyListeners();
   }
 
   String sendOtp(String phone) {
@@ -174,20 +162,96 @@ class AppProvider extends ChangeNotifier {
     final sp = await SharedPreferences.getInstance();
     currentPhone = null;
     await sp.remove('currentPhone');
+    await AuthTokenService.clearTokens();
     notifyListeners();
   }
 
-  Future<void> addMember(String name, String phone, double paid) async {
-    members.add(Member(id: _id(), name: name, phone: phone, paidAmount: paid));
+  Future<bool> handleUnauthorized() async {
+    final refreshToken = await AuthTokenService.getRefreshToken();
+    if (refreshToken == null || refreshToken.isEmpty) {
+      await logout();
+      return false;
+    }
+
+    try {
+      final tokens = await AuthService.refreshToken(refreshToken);
+      await AuthTokenService.saveTokens(
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      );
+      return true;
+    } catch (_) {
+      await logout();
+      return false;
+    }
+  }
+
+  Future<void> addMember(
+    String name,
+    String email,
+    String phone,
+    double paid,
+  ) async {
+    final cleanedName = name.trim();
+    final cleanedEmail = email.trim().toLowerCase();
+    final cleanedPhone = phone.trim();
+    if (cleanedName.isEmpty || cleanedEmail.isEmpty || cleanedPhone.isEmpty) {
+      throw Exception('Member name, email and phone are required.');
+    }
+    if (!cleanedEmail.contains('@')) {
+      throw Exception('Please enter a valid email address.');
+    }
+    if (members.any((member) => member.phone == cleanedPhone)) {
+      throw Exception('A member with this phone already exists.');
+    }
+    if (members.any((member) => member.email == cleanedEmail)) {
+      throw Exception('A member with this email already exists.');
+    }
+    members.add(
+      Member(
+        id: _id(),
+        name: cleanedName,
+        email: cleanedEmail,
+        phone: cleanedPhone,
+        paidAmount: paid < 0 ? 0 : paid,
+      ),
+    );
     await save();
     notifyListeners();
   }
 
   Future<void> updateMember(
-      Member member, String name, String phone, double paid) async {
-    member.name = name;
-    member.phone = phone;
-    member.paidAmount = paid;
+    Member member,
+    String name,
+    String email,
+    String phone,
+    double paid,
+  ) async {
+    final cleanedName = name.trim();
+    final cleanedEmail = email.trim().toLowerCase();
+    final cleanedPhone = phone.trim();
+    if (cleanedName.isEmpty || cleanedEmail.isEmpty || cleanedPhone.isEmpty) {
+      throw Exception('Member name, email and phone are required.');
+    }
+    if (!cleanedEmail.contains('@')) {
+      throw Exception('Please enter a valid email address.');
+    }
+    final duplicatePhone = members.any(
+      (m) => m.id != member.id && m.phone == cleanedPhone,
+    );
+    final duplicateEmail = members.any(
+      (m) => m.id != member.id && m.email == cleanedEmail,
+    );
+    if (duplicatePhone) {
+      throw Exception('Another member already uses this phone.');
+    }
+    if (duplicateEmail) {
+      throw Exception('Another member already uses this email.');
+    }
+    member.name = cleanedName;
+    member.email = cleanedEmail;
+    member.phone = cleanedPhone;
+    member.paidAmount = paid < 0 ? 0 : paid;
     await save();
     notifyListeners();
   }
@@ -203,6 +267,9 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> addPayment(Member member, double amount) async {
+    if (amount <= 0) {
+      throw Exception('Payment amount must be greater than 0.');
+    }
     member.paidAmount += amount;
     await save();
     notifyListeners();
@@ -232,15 +299,22 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> addExpense(String title, double amount, String memberId,
       String category, List<String> items) async {
+    final cleanTitle = title.trim();
+    if (cleanTitle.isEmpty) {
+      throw Exception('Expense title is required.');
+    }
+    if (amount <= 0) {
+      throw Exception('Expense amount must be greater than 0.');
+    }
     expenses.add(
       Expense(
         id: _id(),
-        title: title,
+        title: cleanTitle,
         amount: amount,
         paidByMemberId: memberId,
         date: DateTime.now(),
         category: category,
-        items: items,
+        items: items.where((item) => item.trim().isNotEmpty).toList(),
       ),
     );
     await save();
@@ -249,10 +323,17 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> updateExpense(Expense expense, String title, double amount,
       String category, List<String> items) async {
-    expense.title = title;
+    final cleanTitle = title.trim();
+    if (cleanTitle.isEmpty) {
+      throw Exception('Expense title is required.');
+    }
+    if (amount <= 0) {
+      throw Exception('Expense amount must be greater than 0.');
+    }
+    expense.title = cleanTitle;
     expense.amount = amount;
     expense.category = category;
-    expense.items = items;
+    expense.items = items.where((item) => item.trim().isNotEmpty).toList();
     await save();
     notifyListeners();
   }
@@ -293,7 +374,7 @@ class AppProvider extends ChangeNotifier {
             .toList();
 
     final emails = selectedMembers
-        .map((member) => member.phone.trim())
+        .map((member) => member.email.trim())
         .where((contact) => contact.contains('@'))
         .toSet()
         .toList();
@@ -327,4 +408,18 @@ class AppProvider extends ChangeNotifier {
   }
 
   String _id() => DateTime.now().microsecondsSinceEpoch.toString();
+
+  List<T> _decodeList<T>(
+      String? source, T Function(Map<String, dynamic>) mapper) {
+    if (source == null || source.isEmpty) return [];
+    try {
+      final decoded = jsonDecode(source) as List<dynamic>;
+      return decoded
+          .whereType<Map<String, dynamic>>()
+          .map(mapper)
+          .toList(growable: true);
+    } catch (_) {
+      return [];
+    }
+  }
 }

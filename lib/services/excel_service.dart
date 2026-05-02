@@ -1,1 +1,3 @@
-class ExcelService { Future<void> exportMonthlyReport() async {} }
+class ExcelService {
+  Future<void> exportMonthlyReport() async {}
+}

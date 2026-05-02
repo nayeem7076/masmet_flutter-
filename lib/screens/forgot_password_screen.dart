@@ -45,12 +45,26 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             FilledButton(
               onPressed: () async {
                 if (!sent) {
-                  ref.read(appProviderProvider).sendOtp(phone.text);
+                  if (phone.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please enter phone or email'),
+                      ),
+                    );
+                    return;
+                  }
+                  ref.read(appProviderProvider).sendOtp(phone.text.trim());
                   setState(() => sent = true);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Mock OTP sent: 1234')),
+                    const SnackBar(content: Text('OTP sent successfully')),
                   );
                 } else {
+                  if (otp.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please enter OTP')),
+                    );
+                    return;
+                  }
                   final ok = await ref
                       .read(appProviderProvider)
                       .verifyOtp(otp.text.trim());

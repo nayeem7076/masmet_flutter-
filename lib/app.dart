@@ -124,7 +124,8 @@ class MessMateApp extends StatelessWidget {
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           labelStyle: const TextStyle(color: Color(0xFF52616B)),
           prefixIconColor: primaryBlue,
           suffixIconColor: primaryBlue,

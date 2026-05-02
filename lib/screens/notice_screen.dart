@@ -3,9 +3,74 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/notice.dart';
 import '../providers/app_provider.dart';
+import '../services/sms_service.dart';
 
 class NoticeScreen extends ConsumerWidget {
   const NoticeScreen({super.key});
+
+  Future<bool> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Notice'),
+        content: const Text('Are you sure you want to delete this notice?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
+  }
+
+  Future<void> _showSmsPrompt(
+    BuildContext context, {
+    required List<String> recipients,
+    required String title,
+    required String message,
+  }) async {
+    if (recipients.isEmpty) return;
+
+    await showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Send SMS'),
+        content: Text(
+          'Email ready. Do you want to open SMS app for ${recipients.length} recipient(s)?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Later'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final opened = await SmsService.composeSms(
+                recipients: recipients,
+                message: '$title\n$message',
+              );
+              if (!context.mounted) return;
+              if (!opened) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Could not open SMS app on this device'),
+                  ),
+                );
+              }
+            },
+            child: const Text('Send SMS'),
+          ),
+        ],
+      ),
+    );
+  }
 
   void openNoticeDialog(BuildContext context, WidgetRef ref,
       {NoticeItem? notice}) {
@@ -115,6 +180,23 @@ class NoticeScreen extends ConsumerWidget {
                     }
 
                     if (notice == null) {
+                      final targetMembers = sendToAll
+                          ? provider.members
+                          : provider.members
+                              .where(
+                                (member) =>
+                                    selectedMemberIds.contains(member.id),
+                              )
+                              .toList();
+                      final smsNumbers = targetMembers
+                          .map((member) => member.phone.trim())
+                          .where(
+                            (contact) =>
+                                contact.isNotEmpty && !contact.contains('@'),
+                          )
+                          .toSet()
+                          .toList();
+
                       final emailSent = await provider.addNotice(
                         title: title,
                         text: message,
@@ -132,6 +214,12 @@ class NoticeScreen extends ConsumerWidget {
                                   : 'Notice added. Email not sent. Check backend/server and member email.',
                             ),
                           ),
+                        );
+                        await _showSmsPrompt(
+                          context,
+                          recipients: smsNumbers,
+                          title: title,
+                          message: message,
                         );
                       }
                     } else {
@@ -239,12 +327,15 @@ class NoticeScreen extends ConsumerWidget {
                             ),
                             if (provider.isManager)
                               PopupMenuButton<String>(
-                                onSelected: (value) {
+                                onSelected: (value) async {
                                   if (value == 'edit') {
                                     openNoticeDialog(context, ref,
                                         notice: notice);
                                   } else if (value == 'delete') {
-                                    provider.deleteNotice(notice.id);
+                                    final ok = await _confirmDelete(context);
+                                    if (ok) {
+                                      await provider.deleteNotice(notice.id);
+                                    }
                                   }
                                 },
                                 itemBuilder: (context) {

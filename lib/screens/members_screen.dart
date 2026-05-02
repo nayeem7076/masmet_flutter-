@@ -7,8 +7,30 @@ import '../providers/app_provider.dart';
 class MembersScreen extends ConsumerWidget {
   const MembersScreen({super.key});
 
+  Future<bool> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Member'),
+        content: const Text('Are you sure you want to delete this member?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
+  }
+
   void openForm(BuildContext context, WidgetRef ref, [Member? m]) {
     final name = TextEditingController(text: m?.name ?? '');
+    final email = TextEditingController(text: m?.email ?? '');
     final phone = TextEditingController(text: m?.phone ?? '');
     final paid = TextEditingController(text: (m?.paidAmount ?? 0).toString());
 
@@ -22,19 +44,40 @@ class MembersScreen extends ConsumerWidget {
             children: [
               TextField(
                 controller: name,
-                decoration: const InputDecoration(labelText: 'Member Name'),
+                textInputAction: TextInputAction.next,
+                decoration: const InputDecoration(
+                  labelText: 'Member Name',
+                  prefixIcon: Icon(Icons.person_outline),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: email,
+                textInputAction: TextInputAction.next,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: 'Email Address',
+                  prefixIcon: Icon(Icons.email_outlined),
+                ),
               ),
               const SizedBox(height: 10),
               TextField(
                 controller: phone,
-                decoration: const InputDecoration(labelText: 'Phone Number'),
+                textInputAction: TextInputAction.next,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'Phone Number',
+                  prefixIcon: Icon(Icons.phone_android),
+                ),
               ),
               const SizedBox(height: 10),
               TextField(
                 controller: paid,
                 keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.done,
                 decoration: const InputDecoration(
                   labelText: 'Advance/Paid Amount',
+                  prefixIcon: Icon(Icons.payments_outlined),
                 ),
               ),
             ],
@@ -48,21 +91,34 @@ class MembersScreen extends ConsumerWidget {
           FilledButton(
             onPressed: () async {
               final p = ref.read(appProviderProvider);
-              if (m == null) {
-                await p.addMember(
-                  name.text,
-                  phone.text,
-                  double.tryParse(paid.text) ?? 0,
-                );
-              } else {
-                await p.updateMember(
-                  m,
-                  name.text,
-                  phone.text,
-                  double.tryParse(paid.text) ?? 0,
+              try {
+                if (m == null) {
+                  await p.addMember(
+                    name.text,
+                    email.text,
+                    phone.text,
+                    double.tryParse(paid.text) ?? 0,
+                  );
+                } else {
+                  await p.updateMember(
+                    m,
+                    name.text,
+                    email.text,
+                    phone.text,
+                    double.tryParse(paid.text) ?? 0,
+                  );
+                }
+                if (context.mounted) Navigator.pop(context);
+              } catch (e) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      e.toString().replaceFirst('Exception: ', ''),
+                    ),
+                  ),
                 );
               }
-              Navigator.pop(context);
             },
             child: const Text('Save'),
           ),
@@ -98,9 +154,9 @@ class MembersScreen extends ConsumerWidget {
               leading: const CircleAvatar(child: Icon(Icons.person)),
               title: Text(m.name),
               subtitle: Text(
-                '${m.phone}\nPaid: ৳${m.paidAmount.toStringAsFixed(0)}',
+                '${m.email}\n${m.phone}\nPaid: ৳${m.paidAmount.toStringAsFixed(0)}',
               ),
-              isThreeLine: false,
+              isThreeLine: true,
               trailing: p.isManager
                   ? PopupMenuButton<String>(
                       itemBuilder: (_) => const [
@@ -108,9 +164,14 @@ class MembersScreen extends ConsumerWidget {
                         PopupMenuItem(value: 'pay', child: Text('Add Payment')),
                         PopupMenuItem(value: 'delete', child: Text('Delete')),
                       ],
-                      onSelected: (v) {
+                      onSelected: (v) async {
                         if (v == 'edit') openForm(context, ref, m);
-                        if (v == 'delete') p.deleteMember(m.id);
+                        if (v == 'delete') {
+                          final ok = await _confirmDelete(context);
+                          if (ok) {
+                            await p.deleteMember(m.id);
+                          }
+                        }
                         if (v == 'pay') {
                           final c = TextEditingController();
                           showDialog(
@@ -125,10 +186,28 @@ class MembersScreen extends ConsumerWidget {
                               ),
                               actions: [
                                 FilledButton(
-                                  onPressed: () {
-                                    p.addPayment(
-                                        m, double.tryParse(c.text) ?? 0);
-                                    Navigator.pop(context);
+                                  onPressed: () async {
+                                    try {
+                                      await p.addPayment(
+                                        m,
+                                        double.tryParse(c.text) ?? 0,
+                                      );
+                                      if (context.mounted)
+                                        Navigator.pop(context);
+                                    } catch (e) {
+                                      if (!context.mounted) return;
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            e.toString().replaceFirst(
+                                                  'Exception: ',
+                                                  '',
+                                                ),
+                                          ),
+                                        ),
+                                      );
+                                    }
                                   },
                                   child: const Text('Add'),
                                 ),

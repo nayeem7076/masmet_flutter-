@@ -1,1 +1,3 @@
-class PdfService { Future<void> exportMonthlyReport() async {} }
+class PdfService {
+  Future<void> exportMonthlyReport() async {}
+}

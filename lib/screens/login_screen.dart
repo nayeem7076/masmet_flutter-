@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/ui/ui_feedback.dart';
 import '../providers/app_provider.dart';
 import 'forgot_password_screen.dart';
 import 'home_screen.dart';
@@ -16,6 +17,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final phoneController = TextEditingController();
   String role = 'manager';
+  bool isSubmitting = false;
 
   @override
   void dispose() {
@@ -24,17 +26,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> login() async {
-    final phoneOrEmail = phoneController.text.trim().isEmpty
-        ? '01700000000'
-        : phoneController.text.trim();
+    final phoneOrEmail = phoneController.text.trim();
+    if (phoneOrEmail.isEmpty) {
+      UiFeedback.showError(context, 'Please enter email or phone number');
+      return;
+    }
 
-    await ref.read(appProviderProvider).login(phoneOrEmail, role);
-
-    if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
-    );
+    setState(() => isSubmitting = true);
+    try {
+      await ref.read(appProviderProvider).login(phoneOrEmail, role);
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      UiFeedback.showError(
+        context,
+        e.toString().replaceFirst('Exception: ', ''),
+      );
+    } finally {
+      if (mounted) setState(() => isSubmitting = false);
+    }
   }
 
   @override
@@ -105,8 +119,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       const SizedBox(height: 20),
                       FilledButton(
-                        onPressed: login,
-                        child: const Text('Login'),
+                        onPressed: isSubmitting ? null : login,
+                        child: Text(isSubmitting ? 'Please wait...' : 'Login'),
                       ),
                       const SizedBox(height: 10),
                       TextButton(
@@ -139,22 +153,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: const Text('Create account'),
                   ),
                 ],
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E88E5).withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text(
-                  'Demo OTP: 1234',
-                  style: TextStyle(
-                    color: Color(0xFF1E88E5),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
               ),
             ],
           ),
