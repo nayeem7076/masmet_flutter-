@@ -35,7 +35,7 @@ class ExpensesScreen extends ConsumerWidget {
         TextEditingController(text: e == null ? '' : e.amount.toString());
     final items = TextEditingController(text: e?.items.join(', ') ?? '');
     var cat = e?.category ?? 'bazar';
-    var paidBy =
+    var expenseByMemberId =
         e?.paidByMemberId ?? (p.members.isNotEmpty ? p.members.first.id : '');
 
     showDialog(
@@ -80,7 +80,7 @@ class ExpensesScreen extends ConsumerWidget {
                   controller: title,
                   decoration: const InputDecoration(
                     labelText: 'Expense title',
-                    hintText: 'e.g. Bazar',
+                    hintText: 'e.g. Weekly Bazar',
                     prefixIcon: Icon(Icons.title),
                   ),
                 ),
@@ -132,16 +132,18 @@ class ExpensesScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 if (p.members.isNotEmpty)
                   DropdownButtonFormField<String>(
-                    initialValue: paidBy,
+                    initialValue: expenseByMemberId,
                     decoration: const InputDecoration(
-                      labelText: 'Paid by',
+                      labelText: 'Bazar / Cost koreche',
                       prefixIcon: Icon(Icons.person_outline),
                     ),
                     items: p.members
                         .map((m) =>
                             DropdownMenuItem(value: m.id, child: Text(m.name)))
                         .toList(),
-                    onChanged: (v) => setState(() => paidBy = v ?? paidBy),
+                    onChanged: (v) => setState(
+                      () => expenseByMemberId = v ?? expenseByMemberId,
+                    ),
                   ),
                 const SizedBox(height: 18),
                 Row(
@@ -166,7 +168,7 @@ class ExpensesScreen extends ConsumerWidget {
                               await p.addExpense(
                                 title.text,
                                 double.tryParse(amount.text) ?? 0,
-                                paidBy,
+                                expenseByMemberId,
                                 cat,
                                 list,
                               );
@@ -328,7 +330,8 @@ class ExpensesScreen extends ConsumerWidget {
           else
             ...expenseList.map((e) {
               final matches = p.members.where((m) => m.id == e.paidByMemberId);
-              final paidBy = matches.isEmpty ? 'Unknown' : matches.first.name;
+              final expenseByName =
+                  matches.isEmpty ? 'Unknown' : matches.first.name;
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
                 child: Padding(
@@ -339,12 +342,26 @@ class ExpensesScreen extends ConsumerWidget {
                       Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              e.title,
-                              style: const TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w700,
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  e.title,
+                                  style: const TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  expenseByName,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.black54,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           Text(
@@ -377,7 +394,6 @@ class ExpensesScreen extends ConsumerWidget {
                         runSpacing: 8,
                         children: [
                           _infoChip('Category: ${e.category}'),
-                          _infoChip('Paid by: $paidBy'),
                         ],
                       ),
                       if (e.items.isNotEmpty) ...[

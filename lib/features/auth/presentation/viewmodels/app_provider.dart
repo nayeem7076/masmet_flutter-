@@ -17,6 +17,23 @@ final appProviderProvider = ChangeNotifierProvider<AppProvider>((ref) {
       'Must be overridden in main() after AppProvider.load()');
 });
 
+class MemberSettlement {
+  final Member member;
+  final double paid;
+  final double share;
+  final double netAmount;
+
+  const MemberSettlement({
+    required this.member,
+    required this.paid,
+    required this.share,
+    required this.netAmount,
+  });
+
+  bool get willReceive => netAmount > 0;
+  bool get willPay => netAmount < 0;
+}
+
 class AppProvider extends ChangeNotifier {
   static const String _membersKey = 'members';
   static const String _expensesKey = 'expenses';
@@ -55,6 +72,24 @@ class AppProvider extends ChangeNotifier {
   double memberCost(String id) => equalCostPerMember;
   double memberBalance(Member member) =>
       member.paidAmount - memberCost(member.id);
+  List<MemberSettlement> get memberSettlements => members
+      .map(
+        (member) => MemberSettlement(
+          member: member,
+          paid: member.paidAmount,
+          share: memberCost(member.id),
+          netAmount: memberBalance(member),
+        ),
+      )
+      .toList();
+  List<MemberSettlement> get receivableSettlements => memberSettlements
+      .where((settlement) => settlement.willReceive)
+      .toList()
+    ..sort((a, b) => b.netAmount.compareTo(a.netAmount));
+  List<MemberSettlement> get payableSettlements => memberSettlements
+      .where((settlement) => settlement.willPay)
+      .toList()
+    ..sort((a, b) => a.netAmount.compareTo(b.netAmount));
 
   List<NoticeItem> visibleNoticesForCurrentUser() {
     if (isManager) return notices;
@@ -344,6 +379,7 @@ class AppProvider extends ChangeNotifier {
         id: _id(),
         title: cleanTitle,
         amount: amount,
+        // Stored for "who did the bazar/cost" display; settlement is still shared equally.
         paidByMemberId: memberId,
         date: DateTime.now(),
         category: category,
