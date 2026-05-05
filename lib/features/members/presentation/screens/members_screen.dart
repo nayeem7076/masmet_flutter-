@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import 'package:messmate_app_full/features/auth/presentation/viewmodels/app_provider.dart';
 import 'package:messmate_app_full/features/members/data/models/member.dart';
 
 class MembersScreen extends ConsumerWidget {
   const MembersScreen({super.key});
+
+  String _formatDate(DateTime date) => DateFormat('dd MMM yyyy').format(date);
 
   Future<bool> _confirmDelete(BuildContext context) async {
     final confirmed = await showDialog<bool>(
@@ -148,15 +151,22 @@ class MembersScreen extends ConsumerWidget {
         itemBuilder: (_, i) {
           final m = p.members[i];
           final bal = p.memberBalance(m);
+          final createdAtText = _formatDate(m.createdAt);
+          final paymentDateText = m.lastPaymentAt == null
+              ? 'No payment yet'
+              : _formatDate(m.lastPaymentAt!);
 
           return Card(
             child: ListTile(
               leading: const CircleAvatar(child: Icon(Icons.person)),
               title: Text(m.name),
               subtitle: Text(
-                '${m.email}\n${m.phone}\nPaid: ৳${m.paidAmount.toStringAsFixed(0)}',
+                '${m.email}\n'
+                '${m.phone}\n'
+                'Added: $createdAtText\n'
+                'Paid: Tk ${m.paidAmount.toStringAsFixed(0)}\n'
+                'Last Payment: $paymentDateText',
               ),
-              isThreeLine: true,
               trailing: p.isManager
                   ? PopupMenuButton<String>(
                       itemBuilder: (_) => const [
@@ -192,8 +202,9 @@ class MembersScreen extends ConsumerWidget {
                                         m,
                                         double.tryParse(c.text) ?? 0,
                                       );
-                                      if (context.mounted)
+                                      if (context.mounted) {
                                         Navigator.pop(context);
+                                      }
                                     } catch (e) {
                                       if (!context.mounted) return;
                                       ScaffoldMessenger.of(context)
@@ -219,8 +230,8 @@ class MembersScreen extends ConsumerWidget {
                     )
                   : Text(
                       bal >= 0
-                          ? 'Advance\n৳${bal.toStringAsFixed(0)}'
-                          : 'Due\n৳${bal.abs().toStringAsFixed(0)}',
+                          ? 'Advance\nTk ${bal.toStringAsFixed(0)}'
+                          : 'Due\nTk ${bal.abs().toStringAsFixed(0)}',
                       textAlign: TextAlign.right,
                       style: TextStyle(
                         color: bal >= 0 ? Colors.green : Colors.red,

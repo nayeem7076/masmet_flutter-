@@ -222,6 +222,7 @@ class AppProvider extends ChangeNotifier {
           name: cleanedName,
           email: cleanedEmail,
           phone: cleanedEmail,
+          createdAt: DateTime.now(),
         ),
       );
     }
@@ -279,6 +280,8 @@ class AppProvider extends ChangeNotifier {
         email: cleanedEmail,
         phone: cleanedPhone,
         paidAmount: paid < 0 ? 0 : paid,
+        createdAt: DateTime.now(),
+        lastPaymentAt: paid > 0 ? DateTime.now() : null,
       ),
     );
     await save();
@@ -316,7 +319,11 @@ class AppProvider extends ChangeNotifier {
     member.name = cleanedName;
     member.email = cleanedEmail;
     member.phone = cleanedPhone;
-    member.paidAmount = paid < 0 ? 0 : paid;
+    final sanitizedPaid = paid < 0 ? 0.0 : paid;
+    if (sanitizedPaid != member.paidAmount) {
+      member.lastPaymentAt = sanitizedPaid > 0 ? DateTime.now() : null;
+    }
+    member.paidAmount = sanitizedPaid;
     await save();
     notifyListeners();
   }
@@ -336,6 +343,7 @@ class AppProvider extends ChangeNotifier {
       throw Exception('Payment amount must be greater than 0.');
     }
     member.paidAmount += amount;
+    member.lastPaymentAt = DateTime.now();
     await save();
     notifyListeners();
   }
