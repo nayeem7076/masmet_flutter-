@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app.dart';
 import 'core/network/api_client.dart';
 import 'core/network/api_config.dart';
-import 'providers/app_provider.dart';
-import 'services/auth_token_service.dart';
+import 'features/auth/data/services/auth_token_service.dart';
+import 'features/auth/presentation/viewmodels/app_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

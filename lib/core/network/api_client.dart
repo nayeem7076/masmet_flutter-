@@ -123,6 +123,7 @@ class ApiClient {
     bool requiresAuth = true,
   }) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}$path');
+    _validateBaseUrl(uri);
     int attempt = 0;
     bool unauthorizedRetried = false;
     while (true) {
@@ -178,7 +179,10 @@ class ApiClient {
           attempt++;
           continue;
         }
-        throw ApiException('Request timeout. Please try again.');
+        throw ApiException(
+          'Request timeout for ${uri.toString()}. '
+          'Use your PC LAN IP in API_BASE_URL (example: http://192.168.x.x:8001).',
+        );
       } on http.ClientException {
         if (attempt < AppConstants.apiRetryCount) {
           attempt++;
@@ -234,5 +238,15 @@ class ApiClient {
   static Map<String, dynamic> _normalizeToMap(dynamic data) {
     if (data is Map<String, dynamic>) return data;
     return <String, dynamic>{'data': data};
+  }
+
+  static void _validateBaseUrl(Uri uri) {
+    final host = uri.host.toLowerCase();
+    if (host == '127.0.0.1' || host == 'localhost') {
+      throw ApiException(
+        'Invalid API_BASE_URL for phone: ${ApiConfig.baseUrl}. '
+        'Use LAN IP (http://192.168.x.x:8001) or emulator host (http://10.0.2.2:8001).',
+      );
+    }
   }
 }

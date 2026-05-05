@@ -6,12 +6,13 @@ class AppConstants {
   static const String appEnvKey = 'APP_ENV';
 
   // Android emulator loopback to host machine.
-  static const String defaultApiBaseUrl = 'http://10.0.2.2:5000';
+  static const String defaultApiBaseUrl = 'http://10.10.10.245:8000';
   static const String defaultAppEnv = 'dev';
 
   static const int apiTimeoutSeconds = 15;
   static const int apiRetryCount = 2;
   static const bool enforceHttpsInProd = true;
+  static const bool skipLoginForTesting = true;
 
   static const String accessTokenKey = 'auth_access_token';
   static const String refreshTokenKey = 'auth_refresh_token';
@@ -21,7 +22,10 @@ class ApiRoutes {
   ApiRoutes._();
 
   static const String sendNoticeEmail = '/api/send-notice-email';
-  static const String login = '/api/auth/login';
-  static const String refreshToken = '/api/auth/refresh';
-  static const String register = '/api/auth/register';
+  static const String login = '/api/login';
+  static const String refreshToken = '/api/refresh';
+  static const String register = '/api/register';
+  static const String profile = '/api/profile';
+  static const String logout = '/api/logout';
+  static const String notices = '/api/notices';
 }

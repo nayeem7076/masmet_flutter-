@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/splash_screen.dart';
+import 'features/splash/presentation/screens/splash_screen.dart';
 
 class MessMateApp extends StatelessWidget {
   const MessMateApp({super.key});
