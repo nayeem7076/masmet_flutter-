@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:messmate_app_full/core/localization/app_text.dart';
 import 'package:messmate_app_full/features/auth/presentation/screens/login_screen.dart';
 import 'package:messmate_app_full/features/auth/presentation/viewmodels/app_provider.dart';
 
@@ -10,15 +11,23 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final provider = ref.watch(appProviderProvider);
-    final totalPaid =
-        provider.members.fold<double>(0, (sum, member) => sum + member.paidAmount);
+    final totalPaid = provider.members
+        .fold<double>(0, (sum, member) => sum + member.paidAmount);
     final totalDue = provider.members.fold<double>(
       0,
-      (sum, member) => sum + (provider.memberBalance(member) < 0 ? provider.memberBalance(member).abs() : 0),
+      (sum, member) =>
+          sum +
+          (provider.memberBalance(member) < 0
+              ? provider.memberBalance(member).abs()
+              : 0),
     );
     final totalAdvance = provider.members.fold<double>(
       0,
-      (sum, member) => sum + (provider.memberBalance(member) > 0 ? provider.memberBalance(member) : 0),
+      (sum, member) =>
+          sum +
+          (provider.memberBalance(member) > 0
+              ? provider.memberBalance(member)
+              : 0),
     );
 
     return Scaffold(
@@ -36,22 +45,48 @@ class DashboardScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 10),
-            const Text('Dashboard'),
+            Text(AppText.t(context, bn: 'ড্যাশবোর্ড', en: 'Dashboard')),
           ],
         ),
         actions: [
-          IconButton(
-            onPressed: () async {
-              await provider.logout();
-              if (context.mounted) {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                  (_) => false,
-                );
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.account_circle_outlined),
+            onSelected: (value) async {
+              if (value == 'bn' || value == 'en') {
+                await provider.setLanguageCode(value);
+                return;
+              }
+              if (value == 'logout') {
+                await provider.logout();
+                if (context.mounted) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    (_) => false,
+                  );
+                }
               }
             },
-            icon: const Icon(Icons.logout),
+            itemBuilder: (_) => [
+              PopupMenuItem(
+                value: 'bn',
+                child: Text(
+                  provider.languageCode == 'bn'
+                      ? '✓ বাংলা'
+                      : AppText.t(context, bn: 'বাংলা', en: 'Bangla'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'en',
+                child: Text(
+                  provider.languageCode == 'en' ? '✓ English' : 'English',
+                ),
+              ),
+              PopupMenuItem(
+                value: 'logout',
+                child: Text(AppText.t(context, bn: 'লগআউট', en: 'Logout')),
+              ),
+            ],
           ),
         ],
       ),
@@ -85,22 +120,28 @@ class DashboardScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'MessMate Dashboard',
-                          style: TextStyle(
+                          AppText.t(context,
+                              bn: 'মেসমেট ড্যাশবোর্ড',
+                              en: 'MessMate Dashboard'),
+                          style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
                           ),
                         ),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(
-                          'Smart control of members, cost and balance',
-                          style: TextStyle(color: Colors.white70),
+                          AppText.t(
+                            context,
+                            bn: 'মেম্বার, খরচ এবং ব্যালান্সের স্মার্ট নিয়ন্ত্রণ',
+                            en: 'Smart control of members, cost and balance',
+                          ),
+                          style: const TextStyle(color: Colors.white70),
                         ),
                       ],
                     ),
@@ -120,22 +161,22 @@ class DashboardScreen extends ConsumerWidget {
               ),
               children: [
                 _smartStatCard(
-                  title: 'Members',
+                  title: AppText.t(context, bn: 'মেম্বার', en: 'Members'),
                   value: '${provider.members.length}',
                   icon: Icons.groups_rounded,
                 ),
                 _smartStatCard(
-                  title: 'Total Cost',
+                  title: AppText.t(context, bn: 'মোট খরচ', en: 'Total Cost'),
                   value: '৳${provider.totalCost.toStringAsFixed(0)}',
                   icon: Icons.payments_outlined,
                 ),
                 _smartStatCard(
-                  title: 'Total Paid',
+                  title: AppText.t(context, bn: 'মোট জমা', en: 'Total Paid'),
                   value: '৳${totalPaid.toStringAsFixed(0)}',
                   icon: Icons.account_balance_wallet_outlined,
                 ),
                 _smartStatCard(
-                  title: 'Expenses',
+                  title: AppText.t(context, bn: 'খরচ এন্ট্রি', en: 'Expenses'),
                   value: '${provider.expenses.length}',
                   icon: Icons.receipt_long_outlined,
                 ),
@@ -143,26 +184,38 @@ class DashboardScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18)),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Financial Insights',
+                      AppText.t(context,
+                          bn: 'আর্থিক সারাংশ', en: 'Financial Insights'),
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w700,
                           ),
                     ),
                     const SizedBox(height: 10),
-                    _insightRow('Role', provider.currentRole.toUpperCase()),
                     _insightRow(
-                      'Per Member Cost',
+                      AppText.t(context, bn: 'রোল', en: 'Role'),
+                      provider.currentRole.toUpperCase(),
+                    ),
+                    _insightRow(
+                      AppText.t(context,
+                          bn: 'প্রতি মেম্বার খরচ', en: 'Per Member Cost'),
                       '৳${provider.equalCostPerMember.toStringAsFixed(0)}',
                     ),
-                    _insightRow('Total Advance', '৳${totalAdvance.toStringAsFixed(0)}'),
-                    _insightRow('Total Due', '৳${totalDue.toStringAsFixed(0)}'),
+                    _insightRow(
+                      AppText.t(context, bn: 'মোট অগ্রিম', en: 'Total Advance'),
+                      '৳${totalAdvance.toStringAsFixed(0)}',
+                    ),
+                    _insightRow(
+                      AppText.t(context, bn: 'মোট বকেয়া', en: 'Total Due'),
+                      '৳${totalDue.toStringAsFixed(0)}',
+                    ),
                   ],
                 ),
               ),
@@ -205,7 +258,9 @@ class DashboardScreen extends ConsumerWidget {
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
-          Expanded(child: Text(label, style: const TextStyle(color: Colors.black54))),
+          Expanded(
+              child:
+                  Text(label, style: const TextStyle(color: Colors.black54))),
           Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
         ],
       ),

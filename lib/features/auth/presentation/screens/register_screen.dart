@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:messmate_app_full/core/localization/app_text.dart';
 import 'package:messmate_app_full/core/ui/ui_feedback.dart';
 import 'package:messmate_app_full/features/auth/presentation/viewmodels/app_provider.dart';
 import 'package:messmate_app_full/features/home/presentation/screens/home_screen.dart';
@@ -32,7 +33,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final email = emailController.text.trim();
     final password = passwordController.text;
     if (name.isEmpty || email.isEmpty || password.isEmpty) {
-      UiFeedback.showError(context, 'Please enter name, email and password');
+      UiFeedback.showError(
+        context,
+        AppText.t(
+          context,
+          bn: 'নাম, ইমেইল ও পাসওয়ার্ড দিন',
+          en: 'Please enter name, email and password',
+        ),
+      );
       return;
     }
 
@@ -60,7 +68,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FB),
-      appBar: AppBar(title: const Text('Create Account')),
+      appBar: AppBar(
+        title: Text(
+            AppText.t(context, bn: 'অ্যাকাউন্ট তৈরি', en: 'Create Account')),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
@@ -73,8 +84,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 fit: BoxFit.contain,
               ),
               const SizedBox(height: 14),
-              const Text(
-                'Join MessMate',
+              Text(
+                AppText.t(context, bn: 'মেসমেটে যোগ দিন', en: 'Join MessMate'),
                 style: TextStyle(
                   fontSize: 27,
                   fontWeight: FontWeight.bold,
@@ -82,8 +93,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
               ),
               const SizedBox(height: 6),
-              const Text(
-                'Create your account to manage mess easily',
+              Text(
+                AppText.t(
+                  context,
+                  bn: 'সহজে মেস পরিচালনার জন্য আপনার অ্যাকাউন্ট তৈরি করুন',
+                  en: 'Create your account to manage mess easily',
+                ),
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.black54, fontSize: 15),
               ),
@@ -101,8 +116,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       TextField(
                         controller: nameController,
                         textInputAction: TextInputAction.next,
-                        decoration: const InputDecoration(
-                          labelText: 'Full Name',
+                        decoration: InputDecoration(
+                          labelText: AppText.t(context,
+                              bn: 'পূর্ণ নাম', en: 'Full Name'),
                           prefixIcon: Icon(Icons.person_outline),
                         ),
                       ),
@@ -110,32 +126,46 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       TextField(
                         controller: emailController,
                         keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(
-                          labelText: 'Email',
-                          prefixIcon: Icon(Icons.phone_android),
+                        textInputAction: TextInputAction.next,
+                        decoration: InputDecoration(
+                          labelText:
+                              AppText.t(context, bn: 'ইমেইল', en: 'Email'),
+                          prefixIcon: Icon(Icons.email_outlined),
                         ),
                       ),
                       const SizedBox(height: 14),
                       TextField(
                         controller: passwordController,
                         obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Password',
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) {
+                          if (!isSubmitting) register();
+                        },
+                        decoration: InputDecoration(
+                          labelText: AppText.t(context,
+                              bn: 'পাসওয়ার্ড', en: 'Password'),
                           prefixIcon: Icon(Icons.lock_outline),
                         ),
                       ),
                       const SizedBox(height: 14),
                       DropdownButtonFormField<String>(
                         value: role,
-                        decoration: const InputDecoration(
-                          labelText: 'Account Role',
+                        decoration: InputDecoration(
+                          labelText: AppText.t(context,
+                              bn: 'অ্যাকাউন্ট ধরন', en: 'Account Role'),
                           prefixIcon: Icon(Icons.badge_outlined),
                         ),
-                        items: const [
+                        items: [
                           DropdownMenuItem(
-                              value: 'manager', child: Text('Manager')),
+                            value: 'manager',
+                            child: Text(AppText.t(context,
+                                bn: 'ম্যানেজার', en: 'Manager')),
+                          ),
                           DropdownMenuItem(
-                              value: 'member', child: Text('Member')),
+                            value: 'member',
+                            child: Text(AppText.t(context,
+                                bn: 'মেম্বার', en: 'Member')),
+                          ),
                         ],
                         onChanged: (value) {
                           if (value == null) return;
@@ -146,8 +176,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       FilledButton.icon(
                         onPressed: isSubmitting ? null : register,
                         icon: const Icon(Icons.check_circle_outline),
-                        label:
-                            Text(isSubmitting ? 'Please wait...' : 'Register'),
+                        label: Text(
+                          isSubmitting
+                              ? AppText.t(context,
+                                  bn: 'অপেক্ষা করুন...', en: 'Please wait...')
+                              : AppText.t(context,
+                                  bn: 'রেজিস্টার', en: 'Register'),
+                        ),
                       ),
                     ],
                   ),
@@ -156,8 +191,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               const SizedBox(height: 16),
               Text(
                 role == 'manager'
-                    ? 'Manager can add, edit and delete mess data.'
-                    : 'Member can view meals, cost and balance.',
+                    ? AppText.t(
+                        context,
+                        bn: 'ম্যানেজার মেসের তথ্য যোগ, সম্পাদনা ও মুছতে পারবেন।',
+                        en: 'Manager can add, edit and delete mess data.',
+                      )
+                    : AppText.t(
+                        context,
+                        bn: 'মেম্বার মিল, খরচ ও ব্যালান্স দেখতে পারবেন।',
+                        en: 'Member can view meals, cost and balance.',
+                      ),
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.black54, fontSize: 14),
               ),

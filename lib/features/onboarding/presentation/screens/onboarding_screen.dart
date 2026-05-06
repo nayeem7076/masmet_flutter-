@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:messmate_app_full/core/localization/app_text.dart';
 import 'package:messmate_app_full/features/auth/presentation/screens/login_screen.dart';
 import 'package:messmate_app_full/features/auth/presentation/viewmodels/app_provider.dart';
 
@@ -23,20 +24,28 @@ class OnboardingScreen extends ConsumerWidget {
                 fit: BoxFit.contain,
               ),
               const SizedBox(height: 24),
-              const Text(
-                'Manage your mess easily',
+              Text(
+                AppText.t(
+                  context,
+                  bn: 'সহজে আপনার মেস পরিচালনা করুন',
+                  en: 'Manage your mess easily',
+                ),
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF0D47A1),
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Member, bazar list, meal count, advance payment, due calculation and monthly report in one app.',
+              Text(
+                AppText.t(
+                  context,
+                  bn: 'মেম্বার, বাজার তালিকা, মিল কাউন্ট, অগ্রিম পেমেন্ট, বকেয়া হিসাব এবং মাসিক রিপোর্ট - সব এক অ্যাপে।',
+                  en: 'Member, bazar list, meal count, advance payment, due calculation and monthly report in one app.',
+                ),
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 15, color: Colors.black54),
+                style: const TextStyle(fontSize: 15, color: Colors.black54),
               ),
               const SizedBox(height: 30),
               FilledButton(
@@ -49,7 +58,8 @@ class OnboardingScreen extends ConsumerWidget {
                     );
                   }
                 },
-                child: const Text('Get Started'),
+                child: Text(
+                    AppText.t(context, bn: 'শুরু করুন', en: 'Get Started')),
               ),
             ],
           ),

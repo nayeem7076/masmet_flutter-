@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:messmate_app_full/core/ui/ui_feedback.dart';
 import 'package:messmate_app_full/features/auth/presentation/viewmodels/app_provider.dart';
 import 'package:messmate_app_full/features/expenses/data/models/expense.dart';
 
@@ -42,7 +43,8 @@ class ExpensesScreen extends ConsumerWidget {
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (context, setState) => Dialog(
-          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
@@ -110,23 +112,17 @@ class ExpensesScreen extends ConsumerWidget {
                     labelText: 'Category',
                     prefixIcon: Icon(Icons.category_outlined),
                   ),
-                  items: const [
-                    'bazar',
-                    'rent',
-                    'gas',
-                    'internet',
-                    'bua',
-                    'other'
-                  ]
-                      .map(
-                        (x) => DropdownMenuItem(
-                          value: x,
-                          child: Text(
-                            x[0].toUpperCase() + x.substring(1),
-                          ),
-                        ),
-                      )
-                      .toList(),
+                  items:
+                      const ['bazar', 'rent', 'gas', 'internet', 'bua', 'other']
+                          .map(
+                            (x) => DropdownMenuItem(
+                              value: x,
+                              child: Text(
+                                x[0].toUpperCase() + x.substring(1),
+                              ),
+                            ),
+                          )
+                          .toList(),
                   onChanged: (v) => setState(() => cat = v ?? cat),
                 ),
                 const SizedBox(height: 12),
@@ -164,30 +160,40 @@ class ExpensesScreen extends ConsumerWidget {
                               .where((x) => x.isNotEmpty)
                               .toList();
                           try {
-                            if (e == null) {
-                              await p.addExpense(
-                                title.text,
-                                double.tryParse(amount.text) ?? 0,
-                                expenseByMemberId,
-                                cat,
-                                list,
-                              );
-                            } else {
-                              await p.updateExpense(
-                                e,
-                                title.text,
-                                double.tryParse(amount.text) ?? 0,
-                                cat,
-                                list,
-                              );
-                            }
+                            await AppLoader.run<void>(
+                              context: context,
+                              message: e == null
+                                  ? 'Adding expense...'
+                                  : 'Updating expense...',
+                              task: () async {
+                                if (e == null) {
+                                  await p.addExpense(
+                                    title.text,
+                                    double.tryParse(amount.text) ?? 0,
+                                    expenseByMemberId,
+                                    cat,
+                                    list,
+                                  );
+                                } else {
+                                  await p.updateExpense(
+                                    e,
+                                    title.text,
+                                    double.tryParse(amount.text) ?? 0,
+                                    cat,
+                                    list,
+                                  );
+                                }
+                              },
+                            );
                             if (context.mounted) Navigator.pop(context);
                           } catch (err) {
                             if (!context.mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  err.toString().replaceFirst('Exception: ', ''),
+                                  err
+                                      .toString()
+                                      .replaceFirst('Exception: ', ''),
                                 ),
                               ),
                             );
@@ -213,7 +219,8 @@ class ExpensesScreen extends ConsumerWidget {
     final expenseList = p.expenses.reversed.toList();
     final totalExpense =
         expenseList.fold<double>(0, (sum, item) => sum + item.amount);
-    final totalItems = expenseList.fold<int>(0, (sum, item) => sum + item.items.length);
+    final totalItems =
+        expenseList.fold<int>(0, (sum, item) => sum + item.items.length);
 
     return Scaffold(
       appBar: AppBar(
@@ -256,7 +263,8 @@ class ExpensesScreen extends ConsumerWidget {
                 const CircleAvatar(
                   radius: 22,
                   backgroundColor: Colors.white24,
-                  child: Icon(Icons.account_balance_wallet_outlined, color: Colors.white),
+                  child: Icon(Icons.account_balance_wallet_outlined,
+                      color: Colors.white),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -292,7 +300,8 @@ class ExpensesScreen extends ConsumerWidget {
               ),
               child: Column(
                 children: [
-                  const Icon(Icons.receipt_long, size: 52, color: Color(0xFF90A4AE)),
+                  const Icon(Icons.receipt_long,
+                      size: 52, color: Color(0xFF90A4AE)),
                   const SizedBox(height: 10),
                   const Text(
                     'No Expenses Added Yet',
@@ -375,14 +384,22 @@ class ExpensesScreen extends ConsumerWidget {
                           if (p.isManager)
                             PopupMenuButton<String>(
                               itemBuilder: (_) => const [
-                                PopupMenuItem(value: 'edit', child: Text('Edit')),
-                                PopupMenuItem(value: 'delete', child: Text('Delete')),
+                                PopupMenuItem(
+                                    value: 'edit', child: Text('Edit')),
+                                PopupMenuItem(
+                                    value: 'delete', child: Text('Delete')),
                               ],
                               onSelected: (v) async {
                                 if (v == 'edit') openForm(context, ref, e);
                                 if (v == 'delete') {
                                   final ok = await _confirmDelete(context);
-                                  if (ok) await p.deleteExpense(e.id);
+                                  if (ok) {
+                                    await AppLoader.run<void>(
+                                      context: context,
+                                      message: 'Deleting expense...',
+                                      task: () => p.deleteExpense(e.id),
+                                    );
+                                  }
                                 }
                               },
                             ),

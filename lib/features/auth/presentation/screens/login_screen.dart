@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:messmate_app_full/core/localization/app_text.dart';
 import 'package:messmate_app_full/core/ui/ui_feedback.dart';
 import 'package:messmate_app_full/features/auth/presentation/viewmodels/app_provider.dart';
 import 'package:messmate_app_full/features/home/presentation/screens/home_screen.dart';
@@ -32,13 +33,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final email = emailController.text.trim();
     final password = passwordController.text;
     if (email.isEmpty || password.isEmpty) {
-      UiFeedback.showError(context, 'Please enter email and password');
+      UiFeedback.showError(
+        context,
+        AppText.t(context,
+            bn: 'ইমেইল ও পাসওয়ার্ড দিন', en: 'Please enter email and password'),
+      );
       return;
     }
 
     setState(() => isSubmitting = true);
     try {
-      await ref.read(appProviderProvider).login(email, password, role);
+      await AppLoader.run<void>(
+        context: context,
+        message:
+            AppText.t(context, bn: 'লগইন করা হচ্ছে...', en: 'Logging in...'),
+        task: () => ref.read(appProviderProvider).login(email, password, role),
+      );
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
@@ -71,8 +81,50 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 fit: BoxFit.contain,
               ),
               const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () async {
+                    final p = ref.read(appProviderProvider);
+                    final selected = await showModalBottomSheet<String>(
+                      context: context,
+                      showDragHandle: true,
+                      builder: (_) => SafeArea(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ListTile(
+                              leading: Icon(
+                                p.languageCode == 'bn'
+                                    ? Icons.check_circle
+                                    : Icons.language,
+                              ),
+                              title: const Text('বাংলা'),
+                              onTap: () => Navigator.pop(context, 'bn'),
+                            ),
+                            ListTile(
+                              leading: Icon(
+                                p.languageCode == 'en'
+                                    ? Icons.check_circle
+                                    : Icons.language,
+                              ),
+                              title: const Text('English'),
+                              onTap: () => Navigator.pop(context, 'en'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                    if (selected != null) {
+                      await p.setLanguageCode(selected);
+                    }
+                  },
+                  icon: const Icon(Icons.language, size: 18),
+                  label: Text(AppText.t(context, bn: 'ভাষা', en: 'Language')),
+                ),
+              ),
               const Text(
-                'Welcome to MessMate',
+                'MessMate',
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
@@ -80,8 +132,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 6),
-              const Text(
-                'Login to manage your mess easily',
+              Text(
+                AppText.t(
+                  context,
+                  bn: 'সহজে মেস পরিচালনা করতে লগইন করুন',
+                  en: 'Login to manage your mess easily',
+                ),
                 style: TextStyle(color: Colors.black54, fontSize: 15),
               ),
               const SizedBox(height: 28),
@@ -115,15 +171,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       const SizedBox(height: 14),
                       DropdownButtonFormField<String>(
                         value: role,
-                        decoration: const InputDecoration(
-                          labelText: 'Login as',
+                        decoration: InputDecoration(
+                          labelText: AppText.t(context,
+                              bn: 'লগইন ধরন', en: 'Login as'),
                           prefixIcon: Icon(Icons.admin_panel_settings),
                         ),
-                        items: const [
+                        items: [
                           DropdownMenuItem(
-                              value: 'manager', child: Text('Manager')),
+                            value: 'manager',
+                            child: Text(AppText.t(context,
+                                bn: 'ম্যানেজার', en: 'Manager')),
+                          ),
                           DropdownMenuItem(
-                              value: 'member', child: Text('Member')),
+                            value: 'member',
+                            child: Text(AppText.t(context,
+                                bn: 'মেম্বার', en: 'Member')),
+                          ),
                         ],
                         onChanged: (value) {
                           if (value == null) return;
@@ -133,7 +196,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       const SizedBox(height: 20),
                       FilledButton(
                         onPressed: isSubmitting ? null : login,
-                        child: Text(isSubmitting ? 'Please wait...' : 'Login'),
+                        child: Text(
+                          isSubmitting
+                              ? AppText.t(context,
+                                  bn: 'অপেক্ষা করুন...', en: 'Please wait...')
+                              : AppText.t(context, bn: 'লগইন', en: 'Login'),
+                        ),
                       ),
                       const SizedBox(height: 10),
                       TextButton(
@@ -141,10 +209,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (_) => const ForgotPasswordScreen()),
+                              builder: (_) => const ForgotPasswordScreen(),
+                            ),
                           );
                         },
-                        child: const Text('Forgot password?'),
+                        child: Text(AppText.t(context,
+                            bn: 'পাসওয়ার্ড ভুলে গেছেন?',
+                            en: 'Forgot password?')),
                       ),
                     ],
                   ),
@@ -154,16 +225,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text("Don't have an account?"),
+                  Text(AppText.t(context,
+                      bn: 'অ্যাকাউন্ট নেই?', en: "Don't have an account?")),
                   TextButton(
                     onPressed: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (_) => const RegisterScreen()),
+                          builder: (_) => const RegisterScreen(),
+                        ),
                       );
                     },
-                    child: const Text('Create account'),
+                    child: Text(AppText.t(context,
+                        bn: 'অ্যাকাউন্ট তৈরি করুন', en: 'Create account')),
                   ),
                 ],
               ),

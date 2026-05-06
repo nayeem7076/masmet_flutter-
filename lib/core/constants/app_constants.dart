@@ -6,13 +6,18 @@ class AppConstants {
   static const String appEnvKey = 'APP_ENV';
 
   // Android emulator loopback to host machine.
-  static const String defaultApiBaseUrl = 'http://10.10.10.245:8000';
+  static const String defaultApiBaseUrl = 'http://192.168.0.156:8001';
   static const String defaultAppEnv = 'dev';
 
   static const int apiTimeoutSeconds = 15;
   static const int apiRetryCount = 2;
   static const bool enforceHttpsInProd = true;
-  static const bool skipLoginForTesting = true;
+  // Enable only when explicitly needed:
+  // flutter run --dart-define=SKIP_LOGIN_FOR_TESTING=true
+  static const bool skipLoginForTesting = bool.fromEnvironment(
+    'SKIP_LOGIN_FOR_TESTING',
+    defaultValue: false,
+  );
 
   static const String accessTokenKey = 'auth_access_token';
   static const String refreshTokenKey = 'auth_refresh_token';

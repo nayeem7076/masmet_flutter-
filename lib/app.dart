@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:messmate_app_full/features/auth/presentation/viewmodels/app_provider.dart';
 import 'features/splash/presentation/screens/splash_screen.dart';
 
-class MessMateApp extends StatelessWidget {
+class MessMateApp extends ConsumerWidget {
   const MessMateApp({super.key});
 
   static const Color primaryBlue = Color(0xFF1565C0);
@@ -11,10 +14,34 @@ class MessMateApp extends StatelessWidget {
   static const Color darkText = Color(0xFF102A43);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final appProvider = ref.watch(appProviderProvider);
+    final selectedLocale = appProvider.languageCode == 'bn'
+        ? const Locale('bn', 'BD')
+        : const Locale('en', 'US');
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'MessMate',
+      locale: selectedLocale,
+      supportedLocales: const [
+        Locale('bn', 'BD'),
+        Locale('en', 'US'),
+      ],
+      localeResolutionCallback: (locale, supportedLocales) {
+        if (locale == null) return const Locale('en', 'US');
+        for (final supported in supportedLocales) {
+          if (supported.languageCode == locale.languageCode) {
+            return supported;
+          }
+        }
+        return const Locale('en', 'US');
+      },
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,

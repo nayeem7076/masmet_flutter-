@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:messmate_app_full/core/localization/app_text.dart';
+import 'package:messmate_app_full/features/auth/presentation/viewmodels/app_provider.dart';
+import 'package:messmate_app_full/core/ui/ui_feedback.dart';
 import 'package:messmate_app_full/features/notices/data/models/notice.dart';
 import 'package:messmate_app_full/features/notices/data/services/notice_service.dart';
 
-class NoticeScreen extends StatefulWidget {
+class NoticeScreen extends ConsumerStatefulWidget {
   const NoticeScreen({super.key});
 
   @override
-  State<NoticeScreen> createState() => _NoticeScreenState();
+  ConsumerState<NoticeScreen> createState() => _NoticeScreenState();
 }
 
-class _NoticeScreenState extends State<NoticeScreen> {
+class _NoticeScreenState extends ConsumerState<NoticeScreen> {
   List<NoticeItem> _notices = <NoticeItem>[];
   bool _loading = true;
   String? _error;
@@ -32,7 +36,16 @@ class _NoticeScreenState extends State<NoticeScreen> {
       setState(() => _notices = notices);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+      final localNotices =
+          ref.read(appProviderProvider).visibleNoticesForCurrentUser();
+      setState(() {
+        _notices = localNotices;
+        if (localNotices.isEmpty) {
+          _error = e.toString().replaceFirst('Exception: ', '');
+        } else {
+          _error = null;
+        }
+      });
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -40,19 +53,34 @@ class _NoticeScreenState extends State<NoticeScreen> {
 
   Future<void> _openDetails(NoticeItem item) async {
     try {
-      final notice = await NoticeService.getNoticeById(item.id);
+      final notice = await AppLoader.run<NoticeItem>(
+        context: context,
+        message: AppText.t(context,
+            bn: 'নোটিশ লোড হচ্ছে...', en: 'Loading notice...'),
+        task: () async {
+          if (item.id.isNotEmpty) {
+            return NoticeService.getNoticeById(item.id);
+          }
+          return item;
+        },
+      );
       if (!mounted) return;
       await showDialog<void>(
         context: context,
         builder: (_) => AlertDialog(
           title: Text(notice.title),
           content: SingleChildScrollView(
-            child: Text(notice.text.isEmpty ? 'No details found.' : notice.text),
+            child: Text(
+              notice.text.isEmpty
+                  ? AppText.t(context,
+                      bn: 'বিস্তারিত পাওয়া যায়নি।', en: 'No details found.')
+                  : notice.text,
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
+              child: Text(AppText.t(context, bn: 'বন্ধ', en: 'Close')),
             ),
           ],
         ),
@@ -69,10 +97,15 @@ class _NoticeScreenState extends State<NoticeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notice'),
+        title: Text(AppText.t(context, bn: 'নোটিশ', en: 'Notice')),
         actions: [
           IconButton(
-            onPressed: _loadNotices,
+            onPressed: () => AppLoader.run<void>(
+              context: context,
+              message: AppText.t(context,
+                  bn: 'নোটিশ রিফ্রেশ হচ্ছে...', en: 'Refreshing notices...'),
+              task: _loadNotices,
+            ),
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -82,7 +115,13 @@ class _NoticeScreenState extends State<NoticeScreen> {
           : _error != null
               ? Center(child: Text(_error!))
               : _notices.isEmpty
-                  ? const Center(child: Text('No notice found'))
+                  ? Center(
+                      child: Text(
+                        AppText.t(context,
+                            bn: 'কোনো নোটিশ পাওয়া যায়নি',
+                            en: 'No notice found'),
+                      ),
+                    )
                   : RefreshIndicator(
                       onRefresh: _loadNotices,
                       child: ListView.builder(

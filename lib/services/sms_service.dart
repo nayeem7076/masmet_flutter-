@@ -23,6 +23,8 @@ class SmsService {
       },
     );
 
+    final supported = await canLaunchUrl(uri);
+    if (!supported) return false;
     return launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 }

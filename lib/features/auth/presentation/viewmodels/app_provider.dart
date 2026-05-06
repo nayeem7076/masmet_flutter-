@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:messmate_app_full/core/constants/app_constants.dart';
 import 'package:messmate_app_full/features/auth/data/services/auth_service.dart';
 import 'package:messmate_app_full/features/auth/data/services/auth_token_service.dart';
 import 'package:messmate_app_full/features/expenses/data/models/expense.dart';
@@ -43,6 +44,7 @@ class AppProvider extends ChangeNotifier {
   static const String _expensesBackupKey = 'expenses_backup';
   static const String _mealsBackupKey = 'meals_backup';
   static const String _noticesBackupKey = 'notices_backup';
+  static const String _languageCodeKey = 'language_code';
 
   List<Member> members = [];
   List<Expense> expenses = [];
@@ -52,16 +54,19 @@ class AppProvider extends ChangeNotifier {
   String? currentPhone;
   String currentRole = 'manager';
   bool onboarded = false;
+  String languageCode = 'en';
   String mockOtp = '1234';
 
   bool get isLoggedIn => currentPhone != null;
-  bool get isManager => currentRole == 'manager';
+  bool get isManager =>
+      AppConstants.skipLoginForTesting || currentRole == 'manager';
 
   double get totalCost =>
       expenses.fold(0, (sum, expense) => sum + expense.amount);
   double get totalMeals => meals.fold(0, (sum, meal) => sum + meal.total);
   double get mealRate => totalMeals == 0 ? 0 : totalCost / totalMeals;
-  double get equalCostPerMember => members.isEmpty ? 0 : totalCost / members.length;
+  double get equalCostPerMember =>
+      members.isEmpty ? 0 : totalCost / members.length;
 
   double memberMeals(String id) {
     return meals
@@ -82,14 +87,12 @@ class AppProvider extends ChangeNotifier {
         ),
       )
       .toList();
-  List<MemberSettlement> get receivableSettlements => memberSettlements
-      .where((settlement) => settlement.willReceive)
-      .toList()
-    ..sort((a, b) => b.netAmount.compareTo(a.netAmount));
-  List<MemberSettlement> get payableSettlements => memberSettlements
-      .where((settlement) => settlement.willPay)
-      .toList()
-    ..sort((a, b) => a.netAmount.compareTo(b.netAmount));
+  List<MemberSettlement> get receivableSettlements =>
+      memberSettlements.where((settlement) => settlement.willReceive).toList()
+        ..sort((a, b) => b.netAmount.compareTo(a.netAmount));
+  List<MemberSettlement> get payableSettlements =>
+      memberSettlements.where((settlement) => settlement.willPay).toList()
+        ..sort((a, b) => a.netAmount.compareTo(b.netAmount));
 
   List<NoticeItem> visibleNoticesForCurrentUser() {
     if (isManager) return notices;
@@ -111,6 +114,7 @@ class AppProvider extends ChangeNotifier {
     onboarded = sp.getBool('onboarded') ?? false;
     currentPhone = sp.getString('currentPhone');
     currentRole = sp.getString('currentRole') ?? 'manager';
+    languageCode = sp.getString(_languageCodeKey) ?? 'en';
 
     members = _decodeListWithBackup(
       primary: sp.getString(_membersKey),
@@ -145,11 +149,14 @@ class AppProvider extends ChangeNotifier {
     await sp.setBool('onboarded', onboarded);
     if (currentPhone != null) await sp.setString('currentPhone', currentPhone!);
     await sp.setString('currentRole', currentRole);
-    final membersJson = jsonEncode(members.map((item) => item.toJson()).toList());
+    await sp.setString(_languageCodeKey, languageCode);
+    final membersJson =
+        jsonEncode(members.map((item) => item.toJson()).toList());
     final expensesJson =
         jsonEncode(expenses.map((item) => item.toJson()).toList());
     final mealsJson = jsonEncode(meals.map((item) => item.toJson()).toList());
-    final noticesJson = jsonEncode(notices.map((item) => item.toJson()).toList());
+    final noticesJson =
+        jsonEncode(notices.map((item) => item.toJson()).toList());
 
     await sp.setString(_membersKey, membersJson);
     await sp.setString(_expensesKey, expensesJson);
@@ -165,6 +172,15 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> finishOnboarding() async {
     onboarded = true;
+    await save();
+    notifyListeners();
+  }
+
+  Future<void> setLanguageCode(String code) async {
+    final normalized = code.toLowerCase();
+    if (normalized != 'bn' && normalized != 'en') return;
+    if (languageCode == normalized) return;
+    languageCode = normalized;
     await save();
     notifyListeners();
   }
@@ -257,6 +273,7 @@ class AppProvider extends ChangeNotifier {
     String email,
     String phone,
     double paid,
+    String? imagePath,
   ) async {
     final cleanedName = name.trim();
     final cleanedEmail = email.trim().toLowerCase();
@@ -279,9 +296,18 @@ class AppProvider extends ChangeNotifier {
         name: cleanedName,
         email: cleanedEmail,
         phone: cleanedPhone,
+        imagePath: imagePath?.trim().isEmpty == true ? null : imagePath,
         paidAmount: paid < 0 ? 0 : paid,
         createdAt: DateTime.now(),
         lastPaymentAt: paid > 0 ? DateTime.now() : null,
+        paymentHistory: paid > 0
+            ? [
+                MemberPayment(
+                  amount: paid,
+                  paidAt: DateTime.now(),
+                ),
+              ]
+            : [],
       ),
     );
     await save();
@@ -294,6 +320,7 @@ class AppProvider extends ChangeNotifier {
     String email,
     String phone,
     double paid,
+    String? imagePath,
   ) async {
     final cleanedName = name.trim();
     final cleanedEmail = email.trim().toLowerCase();
@@ -319,9 +346,11 @@ class AppProvider extends ChangeNotifier {
     member.name = cleanedName;
     member.email = cleanedEmail;
     member.phone = cleanedPhone;
+    member.imagePath = imagePath?.trim().isEmpty == true ? null : imagePath;
     final sanitizedPaid = paid < 0 ? 0.0 : paid;
     if (sanitizedPaid != member.paidAmount) {
       member.lastPaymentAt = sanitizedPaid > 0 ? DateTime.now() : null;
+      _syncPaymentHistoryWithTotal(member, sanitizedPaid);
     }
     member.paidAmount = sanitizedPaid;
     await save();
@@ -343,9 +372,50 @@ class AppProvider extends ChangeNotifier {
       throw Exception('Payment amount must be greater than 0.');
     }
     member.paidAmount += amount;
-    member.lastPaymentAt = DateTime.now();
+    final now = DateTime.now();
+    member.lastPaymentAt = now;
+    member.paymentHistory.add(
+      MemberPayment(
+        amount: amount,
+        paidAt: now,
+      ),
+    );
     await save();
     notifyListeners();
+  }
+
+  void _syncPaymentHistoryWithTotal(Member member, double totalPaid) {
+    final now = DateTime.now();
+    if (totalPaid <= 0) {
+      member.paymentHistory = [];
+      return;
+    }
+
+    final historySum = member.paymentHistory.fold<double>(
+      0,
+      (sum, payment) => sum + payment.amount,
+    );
+    final delta = totalPaid - historySum;
+
+    if (delta > 0) {
+      member.paymentHistory.add(
+        MemberPayment(
+          amount: delta,
+          paidAt: now,
+        ),
+      );
+      return;
+    }
+
+    if (delta < 0) {
+      // If total is reduced manually, rebuild history to keep total consistent.
+      member.paymentHistory = [
+        MemberPayment(
+          amount: totalPaid,
+          paidAt: now,
+        ),
+      ];
+    }
   }
 
   Future<void> addMeal(
@@ -373,7 +443,8 @@ class AppProvider extends ChangeNotifier {
   Future<void> addExpense(String title, double amount, String memberId,
       String category, List<String> items) async {
     if (members.isEmpty) {
-      throw Exception('No member found. Add at least one member before adding bazar/cost.');
+      throw Exception(
+          'No member found. Add at least one member before adding bazar/cost.');
     }
     final cleanTitle = title.trim();
     if (cleanTitle.isEmpty) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:messmate_app_full/core/localization/app_text.dart';
 import 'package:messmate_app_full/features/auth/presentation/viewmodels/app_provider.dart';
 
 class MealsScreen extends ConsumerStatefulWidget {
@@ -37,7 +38,9 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Meal Entry')),
+      appBar: AppBar(
+        title: Text(AppText.t(context, bn: 'মিল এন্ট্রি', en: 'Meal Entry')),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(12),
         children: [
@@ -50,7 +53,10 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
                     DropdownButtonFormField<String>(
                       value:
                           _selectedMemberId.isEmpty ? null : _selectedMemberId,
-                      decoration: const InputDecoration(labelText: 'Member'),
+                      decoration: InputDecoration(
+                        labelText:
+                            AppText.t(context, bn: 'মেম্বার', en: 'Member'),
+                      ),
                       items: p.members
                           .map(
                             (m) => DropdownMenuItem<String>(
@@ -72,8 +78,10 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
                           child: TextField(
                             controller: _breakfastController,
                             keyboardType: TextInputType.number,
-                            decoration:
-                                const InputDecoration(labelText: 'Breakfast'),
+                            decoration: InputDecoration(
+                              labelText: AppText.t(context,
+                                  bn: 'সকাল', en: 'Breakfast'),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -81,8 +89,10 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
                           child: TextField(
                             controller: _lunchController,
                             keyboardType: TextInputType.number,
-                            decoration:
-                                const InputDecoration(labelText: 'Lunch'),
+                            decoration: InputDecoration(
+                              labelText:
+                                  AppText.t(context, bn: 'দুপুর', en: 'Lunch'),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -90,8 +100,10 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
                           child: TextField(
                             controller: _dinnerController,
                             keyboardType: TextInputType.number,
-                            decoration:
-                                const InputDecoration(labelText: 'Dinner'),
+                            decoration: InputDecoration(
+                              labelText:
+                                  AppText.t(context, bn: 'রাত', en: 'Dinner'),
+                            ),
                           ),
                         ),
                       ],
@@ -108,7 +120,8 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
                                 double.tryParse(_dinnerController.text) ?? 0,
                               );
                             },
-                      child: const Text('Add Meal'),
+                      child: Text(AppText.t(context,
+                          bn: 'মিল যোগ করুন', en: 'Add Meal')),
                     ),
                   ],
                 ),
@@ -120,16 +133,18 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
 
             return Card(
               child: ListTile(
-                title: Text(mem?.name ?? 'Unknown'),
+                title: Text(mem?.name ??
+                    AppText.t(context, bn: 'অজানা', en: 'Unknown')),
                 subtitle: Text(
-                  'Breakfast ${m.breakfast}, Lunch ${m.lunch}, Dinner ${m.dinner}',
+                  '${AppText.t(context, bn: 'সকাল', en: 'Breakfast')} ${m.breakfast}, ${AppText.t(context, bn: 'দুপুর', en: 'Lunch')} ${m.lunch}, ${AppText.t(context, bn: 'রাত', en: 'Dinner')} ${m.dinner}',
                 ),
                 trailing: p.isManager
                     ? IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
                         onPressed: () => p.deleteMeal(m.id),
                       )
-                    : Text('Total ${m.total}'),
+                    : Text(
+                        '${AppText.t(context, bn: 'মোট', en: 'Total')} ${m.total}'),
               ),
             );
           }),

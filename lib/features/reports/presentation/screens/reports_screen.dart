@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:messmate_app_full/core/localization/app_text.dart';
+import 'package:messmate_app_full/core/ui/ui_feedback.dart';
 import 'package:messmate_app_full/features/auth/presentation/viewmodels/app_provider.dart';
 import 'package:messmate_app_full/services/pdf_service.dart';
 
@@ -105,21 +107,33 @@ class ReportsScreen extends ConsumerWidget {
               ),
             )
             .toList(),
-      );
+      ).timeout(const Duration(seconds: 15));
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             kIsWeb
-                ? 'PDF downloaded: $result'
-                : 'PDF saved and opened: ${result.split('/').last}',
+                ? AppText.t(context,
+                    bn: 'PDF ডাউনলোড হয়েছে: $result',
+                    en: 'PDF downloaded: $result')
+                : AppText.t(
+                    context,
+                    bn: 'PDF সেভ এবং ওপেন হয়েছে: ${result.split('/').last}',
+                    en: 'PDF saved and opened: ${result.split('/').last}',
+                  ),
           ),
         ),
       );
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Export failed: ${e.toString()}')),
+        SnackBar(
+          content: Text(
+            AppText.t(context,
+                bn: 'এক্সপোর্ট ব্যর্থ: ${e.toString()}',
+                en: 'Export failed: ${e.toString()}'),
+          ),
+        ),
       );
     }
   }
@@ -161,10 +175,16 @@ class ReportsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Monthly Report'),
+        title:
+            Text(AppText.t(context, bn: 'মাসিক রিপোর্ট', en: 'Monthly Report')),
         actions: [
           IconButton(
-            onPressed: () => _exportReport(context, p),
+            onPressed: () => AppLoader.run<void>(
+              context: context,
+              message: AppText.t(context,
+                  bn: 'রিপোর্ট প্রস্তুত হচ্ছে...', en: 'Preparing report...'),
+              task: () => _exportReport(context, p),
+            ),
             icon: const Icon(Icons.download),
           ),
         ],
@@ -178,8 +198,9 @@ class ReportsScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Report Summary',
+                  Text(
+                    AppText.t(context,
+                        bn: 'রিপোর্ট সারসংক্ষেপ', en: 'Report Summary'),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -191,43 +212,57 @@ class ReportsScreen extends ConsumerWidget {
                     runSpacing: 10,
                     children: [
                       _SummaryBox(
-                        label: 'Total Joma',
+                        label:
+                            AppText.t(context, bn: 'মোট জমা', en: 'Total Paid'),
                         value: 'Tk ${totalPaid.toStringAsFixed(0)}',
                       ),
                       _SummaryBox(
-                        label: 'Total Khoroch',
+                        label: AppText.t(context,
+                            bn: 'মোট খরচ', en: 'Total Expense'),
                         value: 'Tk ${p.totalCost.toStringAsFixed(0)}',
                       ),
                       _SummaryBox(
-                        label: 'Total Member',
+                        label: AppText.t(context,
+                            bn: 'মোট মেম্বার', en: 'Total Members'),
                         value: '${p.members.length}',
                       ),
                       _SummaryBox(
-                        label: 'Per Member Dibe',
+                        label: AppText.t(context,
+                            bn: 'প্রতি মেম্বার শেয়ার', en: 'Per Member Share'),
                         value: 'Tk ${p.equalCostPerMember.toStringAsFixed(0)}',
                       ),
                       _SummaryBox(
-                        label: 'Mot Pabe',
+                        label: AppText.t(context,
+                            bn: 'মোট পাওনা', en: 'Total Receivable'),
                         value: 'Tk ${totalReceivable.toStringAsFixed(0)}',
                         accentColor: Theme.of(context).colorScheme.primary,
                         onTap: () => _showSummaryDetails(
                           context,
-                          title: 'Jara Taka Pabe',
+                          title: AppText.t(context,
+                              bn: 'যারা টাকা পাবে',
+                              en: 'Members Who Will Receive'),
                           rows: receiverRows,
                           color: Theme.of(context).colorScheme.primary,
-                          emptyText: 'Keu taka pabe na.',
+                          emptyText: AppText.t(context,
+                              bn: 'কেউ টাকা পাবে না।',
+                              en: 'No member will receive money.'),
                         ),
                       ),
                       _SummaryBox(
-                        label: 'Mot Dibe',
+                        label: AppText.t(context,
+                            bn: 'মোট বকেয়া', en: 'Total Payable'),
                         value: 'Tk ${totalPayable.toStringAsFixed(0)}',
                         accentColor: Colors.red,
                         onTap: () => _showSummaryDetails(
                           context,
-                          title: 'Jara Taka Dibe',
+                          title: AppText.t(context,
+                              bn: 'যাদের টাকা দিতে হবে',
+                              en: 'Members Who Need To Pay'),
                           rows: payerRows,
                           color: Colors.red,
-                          emptyText: 'Karor taka dewar baki nei.',
+                          emptyText: AppText.t(context,
+                              bn: 'কোনো বকেয়া নেই।',
+                              en: 'No pending payment remaining.'),
                         ),
                       ),
                     ],
@@ -242,13 +277,18 @@ class ReportsScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Settlement Logic',
+                  Text(
+                    AppText.t(context,
+                        bn: 'হিসাবের নিয়ম', en: 'Settlement Logic'),
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Month end e total expense sob member er moddhe soman vabe vag kora hoy. Jar paid share er cheye beshi, she pabe. Jar paid share er cheye kom, she baki taka dibe.',
+                    AppText.t(
+                      context,
+                      bn: 'মাস শেষে মোট খরচ সব মেম্বারের মধ্যে সমান ভাগ করা হয়। কেউ তার ভাগের চেয়ে বেশি দিলে সে টাকা পাবে, কম দিলে বাকি টাকা দিতে হবে।',
+                      en: 'At the end of the month, total expenses are divided equally among all members. If someone paid more than their share, they will receive money. If someone paid less than their share, they need to pay the remaining amount.',
+                    ),
                   ),
                 ],
               ),
@@ -257,11 +297,19 @@ class ReportsScreen extends ConsumerWidget {
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: DataTable(
-              columns: const [
-                DataColumn(label: Text('Name')),
-                DataColumn(label: Text('Paid')),
-                DataColumn(label: Text('Share')),
-                DataColumn(label: Text('Status')),
+              columns: [
+                DataColumn(
+                  label: Text(AppText.t(context, bn: 'নাম', en: 'Name')),
+                ),
+                DataColumn(
+                  label: Text(AppText.t(context, bn: 'জমা', en: 'Paid')),
+                ),
+                DataColumn(
+                  label: Text(AppText.t(context, bn: 'শেয়ার', en: 'Share')),
+                ),
+                DataColumn(
+                  label: Text(AppText.t(context, bn: 'অবস্থা', en: 'Status')),
+                ),
               ],
               rows: settlements.map((settlement) {
                 final balance = settlement.netAmount;
@@ -276,8 +324,12 @@ class ReportsScreen extends ConsumerWidget {
                     DataCell(
                       Text(
                         isReceive
-                            ? 'Pabe Tk ${balance.toStringAsFixed(0)}'
-                            : 'Dibe Tk ${balance.abs().toStringAsFixed(0)}',
+                            ? AppText.t(context,
+                                bn: 'পাবে Tk ${balance.toStringAsFixed(0)}',
+                                en: 'Receive Tk ${balance.toStringAsFixed(0)}')
+                            : AppText.t(context,
+                                bn: 'দেবে Tk ${balance.abs().toStringAsFixed(0)}',
+                                en: 'Pay Tk ${balance.abs().toStringAsFixed(0)}'),
                         style: TextStyle(
                           color: isReceive ? Colors.green : Colors.red,
                           fontWeight: FontWeight.bold,
@@ -291,21 +343,31 @@ class ReportsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           _SettlementSection(
-            title: 'Jara Taka Pabe',
-            emptyText: 'Keu extra pay kore nai.',
+            title: AppText.t(context,
+                bn: 'যারা টাকা পাবে', en: 'Members Who Will Receive'),
+            emptyText: AppText.t(context,
+                bn: 'কেউ অতিরিক্ত দেয়নি।', en: 'No one paid extra.'),
             rows: receiverRows,
           ),
           const SizedBox(height: 12),
           _SettlementSection(
-            title: 'Jara Taka Dibe',
-            emptyText: 'Karor baki nei.',
+            title: AppText.t(context,
+                bn: 'যাদের টাকা দিতে হবে', en: 'Members Who Need To Pay'),
+            emptyText: AppText.t(context,
+                bn: 'কোনো বকেয়া নেই।', en: 'No dues remaining.'),
             rows: payerRows,
           ),
           const SizedBox(height: 12),
           FilledButton.icon(
-            onPressed: () => _exportReport(context, p),
+            onPressed: () => AppLoader.run<void>(
+              context: context,
+              message: AppText.t(context,
+                  bn: 'রিপোর্ট এক্সপোর্ট হচ্ছে...', en: 'Exporting report...'),
+              task: () => _exportReport(context, p),
+            ),
             icon: const Icon(Icons.print),
-            label: const Text('Print / Export'),
+            label: Text(AppText.t(context,
+                bn: 'প্রিন্ট / এক্সপোর্ট', en: 'Print / Export')),
           ),
         ],
       ),
@@ -327,9 +389,8 @@ class _SettlementSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).colorScheme.primary;
-    final boxColor = rows.isNotEmpty && rows.first.isReceive
-        ? primaryColor
-        : Colors.red;
+    final boxColor =
+        rows.isNotEmpty && rows.first.isReceive ? primaryColor : Colors.red;
 
     return Card(
       child: Padding(

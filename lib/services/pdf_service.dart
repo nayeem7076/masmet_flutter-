@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:open_filex/open_filex.dart';
@@ -6,8 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import 'pdf_download_stub.dart'
-    if (dart.library.html) 'pdf_download_web.dart';
+import 'pdf_download_stub.dart' if (dart.library.html) 'pdf_download_web.dart';
 
 class ReportMemberRow {
   final String name;
@@ -110,7 +110,8 @@ class PdfService {
       '${dir.path}/$fileName',
     );
     await file.writeAsBytes(bytes);
-    await OpenFilex.open(file.path);
+    // Launch file open in background so UI loader can close immediately.
+    unawaited(OpenFilex.open(file.path));
     return file.path;
   }
 }
