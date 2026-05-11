@@ -97,6 +97,8 @@ class ReportsScreen extends ConsumerWidget {
           0,
           (sum, settlement) => sum + settlement.netAmount.abs(),
         ),
+        gasBill: p.gasBill,
+        currentBill: p.currentBill,
         members: p.memberSettlements
             .map(
               (settlement) => ReportMemberRow(
@@ -266,29 +268,6 @@ class ReportsScreen extends ConsumerWidget {
                         ),
                       ),
                     ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    AppText.t(context,
-                        bn: 'হিসাবের নিয়ম', en: 'Settlement Logic'),
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    AppText.t(
-                      context,
-                      bn: 'মাস শেষে মোট খরচ সব মেম্বারের মধ্যে সমান ভাগ করা হয়। কেউ তার ভাগের চেয়ে বেশি দিলে সে টাকা পাবে, কম দিলে বাকি টাকা দিতে হবে।',
-                      en: 'At the end of the month, total expenses are divided equally among all members. If someone paid more than their share, they will receive money. If someone paid less than their share, they need to pay the remaining amount.',
-                    ),
                   ),
                 ],
               ),

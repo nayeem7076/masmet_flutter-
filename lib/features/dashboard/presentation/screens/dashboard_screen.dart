@@ -1,15 +1,23 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import 'package:messmate_app_full/core/localization/app_text.dart';
 import 'package:messmate_app_full/features/auth/presentation/screens/login_screen.dart';
 import 'package:messmate_app_full/features/auth/presentation/viewmodels/app_provider.dart';
 
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  @override
+  Widget build(BuildContext context) {
+    final ref = this.ref;
     final provider = ref.watch(appProviderProvider);
     final totalPaid = provider.members
         .fold<double>(0, (sum, member) => sum + member.paidAmount);
@@ -95,31 +103,39 @@ class DashboardScreen extends ConsumerWidget {
         child: ListView(
           children: [
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF1E88E5), Color(0xFF0D47A1)],
-                  begin: Alignment.topLeft,
+                  colors: [Color(0xFF1A73D9), Color(0xFF0D47A1)],
+                  begin: Alignment.topCenter,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(20),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x2B0D47A1),
+                    blurRadius: 16,
+                    offset: Offset(0, 8),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.white24,
-                      borderRadius: BorderRadius.circular(14),
+                      color: const Color(0x33FFFFFF),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0x55FFFFFF)),
                     ),
                     child: Image.asset(
                       'assets/images/logo.png',
-                      height: 44,
-                      width: 44,
+                      height: 42,
+                      width: 42,
                       fit: BoxFit.contain,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,20 +145,26 @@ class DashboardScreen extends ConsumerWidget {
                               bn: 'মেসমেট ড্যাশবোর্ড',
                               en: 'MessMate Dashboard'),
                           style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 29,
+                            fontWeight: FontWeight.w800,
                             color: Colors.white,
+                            letterSpacing: 0.1,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 5),
                         Text(
                           AppText.t(
                             context,
                             bn: 'মেম্বার, খরচ এবং ব্যালান্সের স্মার্ট নিয়ন্ত্রণ',
                             en: 'Smart control of members, cost and balance',
                           ),
-                          style: const TextStyle(color: Colors.white70),
+                          style: const TextStyle(
+                            color: Color(0xFFD8E8FF),
+                            height: 1.25,
+                          ),
                         ),
+                        const SizedBox(height: 10),
+                        const _LiveClockChip(),
                       ],
                     ),
                   ),
@@ -262,6 +284,68 @@ class DashboardScreen extends ConsumerWidget {
               child:
                   Text(label, style: const TextStyle(color: Colors.black54))),
           Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
+}
+
+class _LiveClockChip extends StatefulWidget {
+  const _LiveClockChip();
+
+  @override
+  State<_LiveClockChip> createState() => _LiveClockChipState();
+}
+
+class _LiveClockChipState extends State<_LiveClockChip> {
+  late DateTime _now;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _now = DateTime.now();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() => _now = DateTime.now());
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 8,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0x2EFFFFFF),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0x55FFFFFF)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.schedule_rounded,
+            color: Colors.white,
+            size: 17,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '${DateFormat('dd MMM yyyy').format(_now)}  •  ${DateFormat('hh:mm:ss a').format(_now)}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
         ],
       ),
     );

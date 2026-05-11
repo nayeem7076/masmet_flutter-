@@ -45,6 +45,8 @@ class AppProvider extends ChangeNotifier {
   static const String _mealsBackupKey = 'meals_backup';
   static const String _noticesBackupKey = 'notices_backup';
   static const String _languageCodeKey = 'language_code';
+  static const String _gasBillKey = 'utility_gas_bill';
+  static const String _currentBillKey = 'utility_current_bill';
 
   List<Member> members = [];
   List<Expense> expenses = [];
@@ -56,6 +58,8 @@ class AppProvider extends ChangeNotifier {
   bool onboarded = false;
   String languageCode = 'en';
   String mockOtp = '1234';
+  double gasBill = 0;
+  double currentBill = 0;
 
   bool get isLoggedIn => currentPhone != null;
   bool get isManager =>
@@ -115,6 +119,8 @@ class AppProvider extends ChangeNotifier {
     currentPhone = sp.getString('currentPhone');
     currentRole = sp.getString('currentRole') ?? 'manager';
     languageCode = sp.getString(_languageCodeKey) ?? 'en';
+    gasBill = sp.getDouble(_gasBillKey) ?? 0;
+    currentBill = sp.getDouble(_currentBillKey) ?? 0;
 
     members = _decodeListWithBackup(
       primary: sp.getString(_membersKey),
@@ -136,6 +142,35 @@ class AppProvider extends ChangeNotifier {
       backup: sp.getString(_noticesBackupKey),
       mapper: NoticeItem.fromJson,
     );
+    if (AppConstants.skipLoginForTesting && notices.isEmpty) {
+      notices = <NoticeItem>[
+        NoticeItem(
+          id: _id(),
+          title: 'Monthly Meal Charge Update',
+          text:
+              'Meal rate has been updated to 92 BDT from next week. Please clear dues by Friday.',
+          date: DateTime.now().subtract(const Duration(hours: 4)),
+          sender: 'Manager',
+        ),
+        NoticeItem(
+          id: _id(),
+          title: 'Water Supply Maintenance',
+          text:
+              'Water supply may remain off from 10:00 AM to 1:00 PM tomorrow due to maintenance work.',
+          date: DateTime.now().subtract(const Duration(days: 1)),
+          sender: 'Admin',
+        ),
+        NoticeItem(
+          id: _id(),
+          title: 'General Meeting Reminder',
+          text:
+              'All members are requested to join the monthly meeting tonight at 9:30 PM in the dining area.',
+          date: DateTime.now().subtract(const Duration(days: 2)),
+          sender: 'Manager',
+        ),
+      ];
+      await save();
+    }
 
     final accessToken = await AuthTokenService.getAccessToken();
     if ((accessToken == null || accessToken.isEmpty) && currentPhone != null) {
@@ -150,6 +185,8 @@ class AppProvider extends ChangeNotifier {
     if (currentPhone != null) await sp.setString('currentPhone', currentPhone!);
     await sp.setString('currentRole', currentRole);
     await sp.setString(_languageCodeKey, languageCode);
+    await sp.setDouble(_gasBillKey, gasBill);
+    await sp.setDouble(_currentBillKey, currentBill);
     final membersJson =
         jsonEncode(members.map((item) => item.toJson()).toList());
     final expensesJson =
@@ -488,6 +525,16 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> deleteExpense(String id) async {
     expenses.removeWhere((expense) => expense.id == id);
+    await save();
+    notifyListeners();
+  }
+
+  Future<void> setUtilityBills({
+    required double gas,
+    required double current,
+  }) async {
+    gasBill = gas < 0 ? 0 : gas;
+    currentBill = current < 0 ? 0 : current;
     await save();
     notifyListeners();
   }

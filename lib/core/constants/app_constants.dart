@@ -16,7 +16,7 @@ class AppConstants {
   // flutter run --dart-define=SKIP_LOGIN_FOR_TESTING=true
   static const bool skipLoginForTesting = bool.fromEnvironment(
     'SKIP_LOGIN_FOR_TESTING',
-    defaultValue: false,
+    defaultValue: true,
   );
 
   static const String accessTokenKey = 'auth_access_token';

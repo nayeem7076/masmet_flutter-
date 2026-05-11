@@ -5,6 +5,7 @@ import 'package:messmate_app_full/features/expenses/presentation/screens/expense
 import 'package:messmate_app_full/features/members/presentation/screens/members_screen.dart';
 import 'package:messmate_app_full/features/notices/presentation/screens/notice_screen.dart';
 import 'package:messmate_app_full/features/reports/presentation/screens/reports_screen.dart';
+import 'package:messmate_app_full/features/utility/presentation/screens/utility_split_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,23 +15,48 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int index = 0;
-  final List<Widget> screens = const [
-    DashboardScreen(),
-    MembersScreen(),
-    ExpensesScreen(),
-    ReportsScreen(),
-    NoticeScreen(),
-  ];
+  final List<Widget?> _loadedScreens =
+      List<Widget?>.filled(6, null, growable: false);
+
+  Widget _buildScreen(int i) {
+    switch (i) {
+      case 0:
+        return const DashboardScreen();
+      case 1:
+        return const MembersScreen();
+      case 2:
+        return const ExpensesScreen();
+      case 3:
+        return const UtilitySplitScreen();
+      case 4:
+        return const ReportsScreen();
+      case 5:
+      default:
+        return const NoticeScreen();
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadedScreens[0] = _buildScreen(0);
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
         body: IndexedStack(
           index: index,
-          children: screens,
+          children: List<Widget>.generate(
+            _loadedScreens.length,
+            (i) => _loadedScreens[i] ?? const SizedBox.shrink(),
+          ),
         ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: index,
-          onDestinationSelected: (i) => setState(() => index = i),
+          onDestinationSelected: (i) => setState(() {
+            index = i;
+            _loadedScreens[i] ??= _buildScreen(i);
+          }),
           destinations: [
             NavigationDestination(
               icon: const Icon(Icons.dashboard),
@@ -43,6 +69,10 @@ class _HomeScreenState extends State<HomeScreen> {
             NavigationDestination(
               icon: const Icon(Icons.shopping_bag),
               label: AppText.tr(context, AppText.bazar),
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.bolt_rounded),
+              label: AppText.t(context, bn: 'ইউটিলিটি', en: 'Utility'),
             ),
             NavigationDestination(
               icon: const Icon(Icons.receipt),

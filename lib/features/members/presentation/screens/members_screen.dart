@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:messmate_app_full/core/ui/ui_feedback.dart';
@@ -22,7 +23,22 @@ class MembersScreen extends ConsumerWidget {
         imageQuality: 85,
         maxWidth: 1200,
       );
-      return picked?.path;
+      if (picked == null) return null;
+      if (kIsWeb) return picked.path;
+
+      // Persist a private copy so image does not disappear after cache cleanup.
+      final sourceFile = File(picked.path);
+      if (!await sourceFile.exists()) return null;
+      final dir = await getApplicationDocumentsDirectory();
+      final membersDir = Directory('${dir.path}/member_images');
+      if (!await membersDir.exists()) {
+        await membersDir.create(recursive: true);
+      }
+      final ext = picked.path.contains('.') ? picked.path.split('.').last : 'jpg';
+      final targetPath =
+          '${membersDir.path}/member_${DateTime.now().microsecondsSinceEpoch}.$ext';
+      final copied = await sourceFile.copy(targetPath);
+      return copied.path;
     } catch (e) {
       if (!context.mounted) return null;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -610,10 +626,63 @@ class MembersScreen extends ConsumerWidget {
         ],
       ),
       body: members.isEmpty
-          ? const Center(
-              child: Text(
-                'No members yet.\nTap + to add your first member.',
-                textAlign: TextAlign.center,
+          ? Center(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 28),
+                padding: const EdgeInsets.all(22),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x12000000),
+                      blurRadius: 24,
+                      offset: Offset(0, 10),
+                    ),
+                  ],
+                  border: Border.all(color: const Color(0xFFDCE8FF)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 74,
+                      height: 74,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF1E88E5), Color(0xFF1565C0)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x401565C0),
+                            blurRadius: 18,
+                            offset: Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.groups_rounded,
+                        color: Colors.white,
+                        size: 36,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    const Text(
+                      'No Members Yet',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF183153),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                   
+                   
+                  ],
+                ),
               ),
             )
           : ListView.builder(

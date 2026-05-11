@@ -308,11 +308,11 @@ class ExpensesScreen extends ConsumerWidget {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
-                    'Tap the + button to add your first bazar or cost entry.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.black54),
-                  ),
+                  // const Text(
+                  //   'Tap the + button to add your first bazar or cost entry.',
+                  //   textAlign: TextAlign.center,
+                  //   style: TextStyle(color: Colors.black54),
+                  // ),
                   if (p.isManager) ...[
                     const SizedBox(height: 14),
                     FilledButton.icon(
