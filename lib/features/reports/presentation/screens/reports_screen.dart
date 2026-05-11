@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:messmate_app_full/core/localization/app_text.dart';
 import 'package:messmate_app_full/core/ui/ui_feedback.dart';
 import 'package:messmate_app_full/features/auth/presentation/viewmodels/app_provider.dart';
+import 'package:messmate_app_full/services/backup_transfer_service.dart';
 import 'package:messmate_app_full/services/pdf_service.dart';
 
 class ReportsScreen extends ConsumerWidget {
@@ -82,6 +83,14 @@ class ReportsScreen extends ConsumerWidget {
   }
 
   Future<void> _exportReport(BuildContext context, AppProvider p) async {
+    final result = await _exportReportAndGetPath(context, p);
+    if (!context.mounted || result == null) return;
+  }
+
+  Future<String?> _exportReportAndGetPath(
+    BuildContext context,
+    AppProvider p,
+  ) async {
     try {
       final receivers = p.receivableSettlements;
       final payers = p.payableSettlements;
@@ -110,7 +119,7 @@ class ReportsScreen extends ConsumerWidget {
             )
             .toList(),
       ).timeout(const Duration(seconds: 15));
-      if (!context.mounted) return;
+      if (!context.mounted) return null;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -126,14 +135,47 @@ class ReportsScreen extends ConsumerWidget {
           ),
         ),
       );
+      return result;
     } catch (e) {
-      if (!context.mounted) return;
+      if (!context.mounted) return null;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             AppText.t(context,
                 bn: 'এক্সপোর্ট ব্যর্থ: ${e.toString()}',
                 en: 'Export failed: ${e.toString()}'),
+          ),
+        ),
+      );
+      return null;
+    }
+  }
+
+  Future<void> _shareViaWhatsApp(BuildContext context, AppProvider p) async {
+    try {
+      final totalPaid =
+          p.members.fold<double>(0, (sum, member) => sum + member.paidAmount);
+      final message = AppText.t(
+        context,
+        bn: 'MessMate রিপোর্ট:\nমোট মেম্বার: ${p.members.length}\nমোট জমা: Tk ${totalPaid.toStringAsFixed(0)}\nমোট খরচ: Tk ${p.totalCost.toStringAsFixed(0)}\nপ্রতি মেম্বার শেয়ার: Tk ${p.equalCostPerMember.toStringAsFixed(0)}',
+        en: 'MessMate Report:\nTotal members: ${p.members.length}\nTotal paid: Tk ${totalPaid.toStringAsFixed(0)}\nTotal expense: Tk ${p.totalCost.toStringAsFixed(0)}\nPer member share: Tk ${p.equalCostPerMember.toStringAsFixed(0)}',
+      );
+      final reportPath = await _exportReportAndGetPath(context, p);
+      if (reportPath == null) return;
+      await BackupTransferService.shareViaWhatsApp(
+        message: message,
+        filePath: reportPath,
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppText.t(
+              context,
+              bn: 'WhatsApp share ব্যর্থ: ${e.toString()}',
+              en: 'WhatsApp share failed: ${e.toString()}',
+            ),
           ),
         ),
       );
@@ -337,17 +379,49 @@ class ReportsScreen extends ConsumerWidget {
             rows: payerRows,
           ),
           const SizedBox(height: 12),
-          FilledButton.icon(
-            onPressed: () => AppLoader.run<void>(
-              context: context,
-              message: AppText.t(context,
-                  bn: 'রিপোর্ট এক্সপোর্ট হচ্ছে...', en: 'Exporting report...'),
-              task: () => _exportReport(context, p),
-            ),
-            icon: const Icon(Icons.print),
-            label: Text(AppText.t(context,
-                bn: 'প্রিন্ট / এক্সপোর্ট', en: 'Print / Export')),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              FilledButton.icon(
+                onPressed: () => AppLoader.run<void>(
+                  context: context,
+                  message: AppText.t(context,
+                      bn: 'PDF রিপোর্ট তৈরি হচ্ছে...',
+                      en: 'Generating PDF report...'),
+                  task: () => _exportReport(context, p),
+                ),
+                icon: const Icon(Icons.picture_as_pdf),
+                label: Text(AppText.t(context,
+                    bn: 'Generate Report PDF', en: 'Generate Report PDF')),
+              ),
+              FilledButton.icon(
+                onPressed: () => AppLoader.run<void>(
+                  context: context,
+                  message: AppText.t(context,
+                      bn: 'WhatsApp share প্রস্তুত হচ্ছে...',
+                      en: 'Preparing WhatsApp share...'),
+                  task: () => _shareViaWhatsApp(context, p),
+                ),
+                icon: const Icon(Icons.share_outlined),
+                label: Text(AppText.t(context,
+                    bn: 'Share via WhatsApp', en: 'Share via WhatsApp')),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => AppLoader.run<void>(
+                  context: context,
+                  message: AppText.t(context,
+                      bn: 'WhatsApp share প্রস্তুত হচ্ছে...',
+                      en: 'Preparing WhatsApp share...'),
+                  task: () => _shareViaWhatsApp(context, p),
+                ),
+                icon: const Icon(Icons.chat),
+                label: Text(AppText.t(context,
+                    bn: 'WhatsApp Share', en: 'WhatsApp Share')),
+              ),
+            ],
           ),
+          const SizedBox(height: 12),
         ],
       ),
     );

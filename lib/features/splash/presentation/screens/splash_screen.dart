@@ -4,7 +4,6 @@ import 'package:video_player/video_player.dart';
 
 import 'package:messmate_app_full/core/constants/app_constants.dart';
 import 'package:messmate_app_full/core/localization/app_text.dart';
-import 'package:messmate_app_full/features/auth/presentation/screens/login_screen.dart';
 import 'package:messmate_app_full/features/auth/presentation/viewmodels/app_provider.dart';
 import 'package:messmate_app_full/features/home/presentation/screens/home_screen.dart';
 import 'package:messmate_app_full/features/onboarding/presentation/screens/onboarding_screen.dart';
@@ -18,6 +17,7 @@ class SplashScreen extends ConsumerStatefulWidget {
 
 class _SplashScreenState extends ConsumerState<SplashScreen>
     with SingleTickerProviderStateMixin {
+  static const _splashDuration = Duration(milliseconds: 1990);
   VideoPlayerController? _videoController;
   late final AnimationController _textIntroController;
   bool _showGif = true;
@@ -29,7 +29,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     super.initState();
     _textIntroController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 850),
+      duration: _splashDuration,
     )..forward();
     _setupSplashMedia();
     Future.microtask(() {
@@ -38,7 +38,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         _animateIn = true;
       });
     });
-    Future.delayed(const Duration(milliseconds: 3300), () {
+    Future.delayed(_splashDuration, () {
       if (!mounted) return;
       final provider = ref.read(appProviderProvider);
       Navigator.pushReplacement(
@@ -50,9 +50,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             }
             return !provider.onboarded
                 ? const OnboardingScreen()
-                : provider.isLoggedIn
-                    ? const HomeScreen()
-                    : const LoginScreen();
+                : const HomeScreen();
           },
         ),
       );
@@ -62,7 +60,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   Future<void> _setupSplashMedia() async {
     try {
       final controller = VideoPlayerController.asset(
-        'assets/videos/splash.mp4',
+        '/assets/images/onboding1.jpeg',
       );
       await controller.initialize();
       controller.setLooping(true);

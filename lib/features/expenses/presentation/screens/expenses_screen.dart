@@ -1,12 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:messmate_app_full/core/localization/app_text.dart';
 import 'package:messmate_app_full/core/ui/ui_feedback.dart';
 import 'package:messmate_app_full/features/auth/presentation/viewmodels/app_provider.dart';
 import 'package:messmate_app_full/features/expenses/data/models/expense.dart';
 
 class ExpensesScreen extends ConsumerWidget {
   const ExpensesScreen({super.key});
+
+  void _showNoMemberMessage(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          AppText.t(
+            context,
+            bn: 'কোনো মেম্বার নেই। আগে মেম্বার যোগ করুন, তারপর বাজার/খরচ যোগ করুন।',
+            en: 'No members found. Add a member first, then add bazar/cost.',
+          ),
+        ),
+      ),
+    );
+  }
 
   Future<bool> _confirmDelete(BuildContext context) async {
     final confirmed = await showDialog<bool>(
@@ -230,13 +245,7 @@ class ExpensesScreen extends ConsumerWidget {
             IconButton(
               onPressed: () {
                 if (p.members.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Member নেই। আগে member add করুন, তারপর bazar/cost add করুন।',
-                      ),
-                    ),
-                  );
+                  _showNoMemberMessage(context);
                   return;
                 }
                 openForm(context, ref);
@@ -318,13 +327,7 @@ class ExpensesScreen extends ConsumerWidget {
                     FilledButton.icon(
                       onPressed: () {
                         if (p.members.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Member নেই। আগে member add করুন, তারপর bazar/cost add করুন।',
-                              ),
-                            ),
-                          );
+                          _showNoMemberMessage(context);
                           return;
                         }
                         openForm(context, ref);

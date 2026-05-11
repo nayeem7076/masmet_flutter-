@@ -34,7 +34,8 @@ class MembersScreen extends ConsumerWidget {
       if (!await membersDir.exists()) {
         await membersDir.create(recursive: true);
       }
-      final ext = picked.path.contains('.') ? picked.path.split('.').last : 'jpg';
+      final ext =
+          picked.path.contains('.') ? picked.path.split('.').last : 'jpg';
       final targetPath =
           '${membersDir.path}/member_${DateTime.now().microsecondsSinceEpoch}.$ext';
       final copied = await sourceFile.copy(targetPath);
@@ -241,6 +242,8 @@ class MembersScreen extends ConsumerWidget {
   }
 
   void openForm(BuildContext context, WidgetRef ref, [Member? m]) {
+    final formKey = GlobalKey<FormState>();
+    var autoValidateMode = AutovalidateMode.disabled;
     final name = TextEditingController(text: m?.name ?? '');
     final email = TextEditingController(text: m?.email ?? '');
     final phone = TextEditingController(text: m?.phone ?? '');
@@ -255,226 +258,247 @@ class MembersScreen extends ConsumerWidget {
               const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF1E88E5), Color(0xFF1565C0)],
+          child: Form(
+            key: formKey,
+            autovalidateMode: autoValidateMode,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF1E88E5), Color(0xFF1565C0)],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    children: [
-                      const CircleAvatar(
-                        radius: 18,
-                        backgroundColor: Colors.white24,
-                        child:
-                            Icon(Icons.person_add_alt_1, color: Colors.white),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        m == null ? 'Add Member' : 'Edit Member',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
+                    child: Row(
+                      children: [
+                        const CircleAvatar(
+                          radius: 18,
+                          backgroundColor: Colors.white24,
+                          child:
+                              Icon(Icons.person_add_alt_1, color: Colors.white),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Center(
-                  child: Column(
-                    children: [
-                      GestureDetector(
-                        onTap: () async {
-                          final pickedPath = await _pickMemberImage(context);
-                          if (pickedPath == null) return;
-                          setDialogState(() {
-                            selectedImagePath = pickedPath;
-                          });
-                        },
-                        child: CircleAvatar(
-                          radius: 34,
-                          backgroundColor: const Color(0xFFE6F0FF),
-                          backgroundImage: selectedImagePath != null &&
-                                  selectedImagePath!.isNotEmpty &&
-                                  !kIsWeb
-                              ? FileImage(File(selectedImagePath!))
-                              : null,
-                          child: selectedImagePath == null ||
-                                  selectedImagePath!.isEmpty
-                              ? const Icon(
-                                  Icons.add_a_photo_outlined,
-                                  color: Color(0xFF1565C0),
-                                  size: 28,
-                                )
-                              : null,
+                        const SizedBox(width: 10),
+                        Text(
+                          m == null ? 'Add Member' : 'Edit Member',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 6),
-                      TextButton(
-                        onPressed: () async {
-                          if (selectedImagePath == null ||
-                              selectedImagePath!.isEmpty) {
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Center(
+                    child: Column(
+                      children: [
+                        GestureDetector(
+                          onTap: () async {
                             final pickedPath = await _pickMemberImage(context);
                             if (pickedPath == null) return;
                             setDialogState(() {
                               selectedImagePath = pickedPath;
                             });
-                            return;
-                          }
-                          setDialogState(() {
-                            selectedImagePath = null;
-                          });
-                        },
-                        child: Text(
-                          selectedImagePath == null ||
-                                  selectedImagePath!.isEmpty
-                              ? 'Add Photo'
-                              : 'Remove Photo',
+                          },
+                          child: CircleAvatar(
+                            radius: 34,
+                            backgroundColor: const Color(0xFFE6F0FF),
+                            backgroundImage: selectedImagePath != null &&
+                                    selectedImagePath!.isNotEmpty &&
+                                    !kIsWeb
+                                ? FileImage(File(selectedImagePath!))
+                                : null,
+                            child: selectedImagePath == null ||
+                                    selectedImagePath!.isEmpty
+                                ? const Icon(
+                                    Icons.add_a_photo_outlined,
+                                    color: Color(0xFF1565C0),
+                                    size: 28,
+                                  )
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextButton(
+                          onPressed: () async {
+                            if (selectedImagePath == null ||
+                                selectedImagePath!.isEmpty) {
+                              final pickedPath =
+                                  await _pickMemberImage(context);
+                              if (pickedPath == null) return;
+                              setDialogState(() {
+                                selectedImagePath = pickedPath;
+                              });
+                              return;
+                            }
+                            setDialogState(() {
+                              selectedImagePath = null;
+                            });
+                          },
+                          child: Text(
+                            selectedImagePath == null ||
+                                    selectedImagePath!.isEmpty
+                                ? 'Add Photo'
+                                : 'Remove Photo',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  TextFormField(
+                    controller: name,
+                    textInputAction: TextInputAction.next,
+                    validator: (value) {
+                      if ((value ?? '').trim().isEmpty) {
+                        return 'Member name is required.';
+                      }
+                      return null;
+                    },
+                    decoration: const InputDecoration(
+                      labelText: 'Member Name',
+                      prefixIcon: Icon(Icons.person_outline),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    controller: email,
+                    textInputAction: TextInputAction.next,
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (value) {
+                      final text = (value ?? '').trim();
+                      if (text.isEmpty) return 'Email is required.';
+                      if (!text.contains('@') || !text.contains('.')) {
+                        return 'Enter a valid email address.';
+                      }
+                      return null;
+                    },
+                    decoration: const InputDecoration(
+                      labelText: 'Email Address',
+                      prefixIcon: Icon(Icons.email_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    controller: phone,
+                    textInputAction: TextInputAction.next,
+                    keyboardType: TextInputType.phone,
+                    validator: (value) {
+                      if ((value ?? '').trim().isEmpty) {
+                        return 'Phone number is required.';
+                      }
+                      return null;
+                    },
+                    decoration: const InputDecoration(
+                      labelText: 'Phone Number',
+                      prefixIcon: Icon(Icons.phone_android),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    controller: paid,
+                    keyboardType: TextInputType.number,
+                    textInputAction: TextInputAction.done,
+                    validator: (value) {
+                      final text = (value ?? '').trim();
+                      if (text.isEmpty) return 'Paid amount is required.';
+                      final amount = double.tryParse(text);
+                      if (amount == null || amount < 0) {
+                        return 'Paid amount must be a valid number.';
+                      }
+                      return null;
+                    },
+                    decoration: const InputDecoration(
+                      labelText: 'Advance/Paid Amount',
+                      prefixIcon: Icon(Icons.payments_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: () async {
+                            final isValid =
+                                formKey.currentState?.validate() ?? false;
+                            if (!isValid) {
+                              setDialogState(() {
+                                autoValidateMode = AutovalidateMode.always;
+                              });
+                              return;
+                            }
+
+                            final memberName = name.text.trim();
+                            final memberEmail = email.text.trim();
+                            final memberPhone = phone.text.trim();
+                            final paidText = paid.text.trim();
+                            final paidAmount = double.tryParse(paidText);
+                            if (paidAmount == null) return;
+
+                            final p = ref.read(appProviderProvider);
+                            try {
+                              await AppLoader.run<void>(
+                                context: context,
+                                message: m == null
+                                    ? 'Adding member...'
+                                    : 'Updating member...',
+                                task: () async {
+                                  if (m == null) {
+                                    await p.addMember(
+                                      memberName,
+                                      memberEmail,
+                                      memberPhone,
+                                      paidAmount,
+                                      selectedImagePath,
+                                    );
+                                  } else {
+                                    await p.updateMember(
+                                      m,
+                                      memberName,
+                                      memberEmail,
+                                      memberPhone,
+                                      paidAmount,
+                                      selectedImagePath,
+                                    );
+                                  }
+                                },
+                              );
+                              if (context.mounted) Navigator.pop(context);
+                            } catch (e) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    e
+                                        .toString()
+                                        .replaceFirst('Exception: ', ''),
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          child: const Text('Save'),
                         ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 4),
-                TextField(
-                  controller: name,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Member Name',
-                    prefixIcon: Icon(Icons.person_outline),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: email,
-                  textInputAction: TextInputAction.next,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Email Address',
-                    prefixIcon: Icon(Icons.email_outlined),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: phone,
-                  textInputAction: TextInputAction.next,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone Number',
-                    prefixIcon: Icon(Icons.phone_android),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: paid,
-                  keyboardType: TextInputType.number,
-                  textInputAction: TextInputAction.done,
-                  decoration: const InputDecoration(
-                    labelText: 'Advance/Paid Amount',
-                    prefixIcon: Icon(Icons.payments_outlined),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancel'),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: FilledButton(
-                        onPressed: () async {
-                          final memberName = name.text.trim();
-                          final memberEmail = email.text.trim();
-                          final memberPhone = phone.text.trim();
-                          final paidText = paid.text.trim();
-                          final paidAmount = double.tryParse(paidText);
-
-                          if (memberName.isEmpty ||
-                              memberEmail.isEmpty ||
-                              memberPhone.isEmpty ||
-                              paidText.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Please complete all fields before saving.',
-                                ),
-                              ),
-                            );
-                            return;
-                          }
-
-                          if (paidAmount == null || paidAmount < 0) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Paid amount must be a valid number.',
-                                ),
-                              ),
-                            );
-                            return;
-                          }
-
-                          final p = ref.read(appProviderProvider);
-                          try {
-                            await AppLoader.run<void>(
-                              context: context,
-                              message: m == null
-                                  ? 'Adding member...'
-                                  : 'Updating member...',
-                              task: () async {
-                                if (m == null) {
-                                  await p.addMember(
-                                    memberName,
-                                    memberEmail,
-                                    memberPhone,
-                                    paidAmount,
-                                    selectedImagePath,
-                                  );
-                                } else {
-                                  await p.updateMember(
-                                    m,
-                                    memberName,
-                                    memberEmail,
-                                    memberPhone,
-                                    paidAmount,
-                                    selectedImagePath,
-                                  );
-                                }
-                              },
-                            );
-                            if (context.mounted) Navigator.pop(context);
-                          } catch (e) {
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  e.toString().replaceFirst('Exception: ', ''),
-                                ),
-                              ),
-                            );
-                          }
-                        },
-                        child: const Text('Save'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -679,8 +703,6 @@ class MembersScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                   
-                   
                   ],
                 ),
               ),

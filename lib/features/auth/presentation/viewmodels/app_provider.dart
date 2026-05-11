@@ -602,6 +602,62 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  String exportBackupJson() {
+    final payload = <String, dynamic>{
+      'version': 1,
+      'createdAt': DateTime.now().toIso8601String(),
+      'languageCode': languageCode,
+      'gasBill': gasBill,
+      'currentBill': currentBill,
+      'members': members.map((item) => item.toJson()).toList(),
+      'expenses': expenses.map((item) => item.toJson()).toList(),
+      'meals': meals.map((item) => item.toJson()).toList(),
+      'notices': notices.map((item) => item.toJson()).toList(),
+    };
+    return jsonEncode(payload);
+  }
+
+  Future<void> importBackupJson(String source) async {
+    if (source.trim().isEmpty) {
+      throw Exception('Backup content is empty.');
+    }
+    final decoded = jsonDecode(source);
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception('Invalid backup format.');
+    }
+    final importedMembers = (decoded['members'] as List<dynamic>? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(Member.fromJson)
+        .toList(growable: true);
+    final importedExpenses = (decoded['expenses'] as List<dynamic>? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(Expense.fromJson)
+        .toList(growable: true);
+    final importedMeals = (decoded['meals'] as List<dynamic>? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(MealEntry.fromJson)
+        .toList(growable: true);
+    final importedNotices = (decoded['notices'] as List<dynamic>? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(NoticeItem.fromJson)
+        .toList(growable: true);
+
+    members = importedMembers;
+    expenses = importedExpenses;
+    meals = importedMeals;
+    notices = importedNotices;
+    gasBill = ((decoded['gasBill'] ?? gasBill) as num).toDouble();
+    currentBill = ((decoded['currentBill'] ?? currentBill) as num).toDouble();
+    final importedLanguage =
+        (decoded['languageCode'] ?? languageCode).toString().toLowerCase();
+    if (importedLanguage == 'bn' || importedLanguage == 'en') {
+      languageCode = importedLanguage;
+    }
+
+    await save();
+    notifyListeners();
+  }
+
   String _id() => DateTime.now().microsecondsSinceEpoch.toString();
 
   List<T> _decodeList<T>(
